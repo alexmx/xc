@@ -45,3 +45,38 @@ struct RunCommandTests {
         #expect(variant == "ci")
     }
 }
+
+@Suite("DestinationsCommand Tests")
+struct DestinationsCommandTests {
+    private let command = DestinationsCommand()
+
+    @Test("formatRuntime parses iOS runtime ID")
+    func formatRuntimeIOS() {
+        let result = command.formatRuntime("com.apple.CoreSimulator.SimRuntime.iOS-18-5")
+        #expect(result == "iOS 18.5")
+    }
+
+    @Test("formatRuntime parses tvOS runtime ID")
+    func formatRuntimeTVOS() {
+        let result = command.formatRuntime("com.apple.CoreSimulator.SimRuntime.tvOS-18-0")
+        #expect(result == "tvOS 18.0")
+    }
+
+    @Test("formatRuntime parses watchOS runtime ID")
+    func formatRuntimeWatchOS() {
+        let result = command.formatRuntime("com.apple.CoreSimulator.SimRuntime.watchOS-11-2")
+        #expect(result == "watchOS 11.2")
+    }
+
+    @Test("formatRuntime parses visionOS runtime ID")
+    func formatRuntimeVisionOS() {
+        let result = command.formatRuntime("com.apple.CoreSimulator.SimRuntime.xrOS-2-3")
+        #expect(result == "xrOS 2.3")
+    }
+
+    @Test("formatRuntime handles single version segment")
+    func formatRuntimeSingleVersion() {
+        let result = command.formatRuntime("com.apple.CoreSimulator.SimRuntime.iOS-26")
+        #expect(result == "iOS 26")
+    }
+}
