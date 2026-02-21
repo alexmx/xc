@@ -435,4 +435,140 @@ struct CommandResolverTests {
             "-scheme", "Minimal",
         ])
     }
+
+    // MARK: - Script Commands
+
+    @Test("script command returns script instead of invocation")
+    func scriptCommand() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: ["lint": CommandConfig(run: "swiftlint lint --strict")]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "lint",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.script == "swiftlint lint --strict")
+        #expect(resolved.invocation.isEmpty)
+    }
+
+    @Test("script command with passthrough args")
+    func scriptCommandPassthrough() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: ["lint": CommandConfig(run: "swiftlint lint")]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "lint",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: ["--fix"]
+        )
+
+        #expect(resolved.script == "swiftlint lint --fix")
+    }
+
+    @Test("script command variant overrides run")
+    func scriptCommandVariant() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "lint": CommandConfig(
+                        run: "swiftlint lint --strict",
+                        variants: [
+                            "fix": CommandConfig(run: "swiftlint lint --fix")
+                        ]
+                    )
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "lint",
+            variant: "fix",
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.script == "swiftlint lint --fix")
+    }
+
+    @Test("script command preserves hooks")
+    func scriptCommandHooks() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "generate": CommandConfig(
+                        run: "tuist generate",
+                        hooks: HookConfig(pre: "echo pre", post: "echo post")
+                    )
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "generate",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.script == "tuist generate")
+        #expect(resolved.hooks?.pre == "echo pre")
+        #expect(resolved.hooks?.post == "echo post")
+    }
+
+    @Test("script command with extra-args in config")
+    func scriptCommandExtraArgs() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "lint": CommandConfig(
+                        run: "swiftlint lint",
+                        extraArgs: ["--reporter", "json"]
+                    )
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "lint",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.script == "swiftlint lint --reporter json")
+    }
+
+    @Test("non-script command has nil script")
+    func nonScriptCommand() throws {
+        let resolved = try CommandResolver.resolve(
+            commandName: "build",
+            variant: nil,
+            config: minimalConfig,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.script == nil)
+        #expect(!resolved.invocation.isEmpty)
+    }
 }

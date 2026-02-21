@@ -30,9 +30,20 @@ struct ListCommand: ParsableCommand {
         }
     }
 
+    static func summarizeCommand(_ command: CommandConfig) -> String {
+        if let run = command.run {
+            return "run: \(run)"
+        }
+        return summarizeVariant(command)
+    }
+
     static func summarizeVariant(_ variant: CommandConfig) -> String {
         var parts: [String] = []
 
+        if let run = variant.run {
+            parts.append("run: \(run)")
+            return parts.joined(separator: ", ")
+        }
         if let scheme = variant.scheme {
             parts.append("scheme: \(scheme)")
         }

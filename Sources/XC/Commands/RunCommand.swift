@@ -43,33 +43,57 @@ struct RunCommand: AsyncParsableCommand {
             extraArgs: passthroughArgs
         )
 
-        if dryRun {
-            let shellSafe = resolved.invocation.map { arg in
-                arg.contains(" ") ? "\"\(arg)\"" : arg
-            }.joined(separator: " ")
-            print(shellSafe)
-            return
-        }
-
         let projectRoot = config.projectRoot
 
-        if let preHook = resolved.hooks?.pre {
-            try HookRunner.run(preHook, label: "pre-\(commandName)", workingDirectory: projectRoot)
-        }
+        if let script = resolved.script {
+            // Script command
+            if dryRun {
+                print(script)
+                return
+            }
 
-        if verbose {
-            let shellSafe = resolved.invocation.map { arg in
-                arg.contains(" ") ? "\"\(arg)\"" : arg
-            }.joined(separator: " ")
-            print("$ \(shellSafe)")
-            fflush(stdout)
-        }
+            if let preHook = resolved.hooks?.pre {
+                try HookRunner.run(preHook, label: "pre-\(commandName)", workingDirectory: projectRoot)
+            }
 
-        let useFormatter = !raw && resolved.formatter != "raw"
-        try CommandRunner.exec(args: resolved.invocation, useFormatter: useFormatter, workingDirectory: projectRoot)
+            if verbose {
+                print("$ \(script)")
+                fflush(stdout)
+            }
 
-        if let postHook = resolved.hooks?.post {
-            try HookRunner.run(postHook, label: "post-\(commandName)", workingDirectory: projectRoot)
+            try HookRunner.run(script, label: commandName, workingDirectory: projectRoot)
+
+            if let postHook = resolved.hooks?.post {
+                try HookRunner.run(postHook, label: "post-\(commandName)", workingDirectory: projectRoot)
+            }
+        } else {
+            // xcodebuild command
+            if dryRun {
+                let shellSafe = resolved.invocation.map { arg in
+                    arg.contains(" ") ? "\"\(arg)\"" : arg
+                }.joined(separator: " ")
+                print(shellSafe)
+                return
+            }
+
+            if let preHook = resolved.hooks?.pre {
+                try HookRunner.run(preHook, label: "pre-\(commandName)", workingDirectory: projectRoot)
+            }
+
+            if verbose {
+                let shellSafe = resolved.invocation.map { arg in
+                    arg.contains(" ") ? "\"\(arg)\"" : arg
+                }.joined(separator: " ")
+                print("$ \(shellSafe)")
+                fflush(stdout)
+            }
+
+            let useFormatter = !raw && resolved.formatter != "raw"
+            try CommandRunner.exec(args: resolved.invocation, useFormatter: useFormatter, workingDirectory: projectRoot)
+
+            if let postHook = resolved.hooks?.post {
+                try HookRunner.run(postHook, label: "post-\(commandName)", workingDirectory: projectRoot)
+            }
         }
     }
 

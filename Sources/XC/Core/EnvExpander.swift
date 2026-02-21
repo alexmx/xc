@@ -76,6 +76,7 @@ extension ProjectConfig {
 extension CommandConfig {
     func expandingEnvVars() -> CommandConfig {
         CommandConfig(
+            run: run?.envExpanded,
             scheme: scheme?.envExpanded,
             configuration: configuration?.envExpanded,
             destination: destination?.envExpanded,

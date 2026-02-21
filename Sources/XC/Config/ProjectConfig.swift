@@ -7,6 +7,7 @@ struct ProjectConfig: Codable, Sendable {
 }
 
 struct CommandConfig: Codable, Sendable {
+    var run: String?
     var scheme: String?
     var configuration: String?
     var destination: String?
@@ -16,7 +17,7 @@ struct CommandConfig: Codable, Sendable {
     var variants: [String: CommandConfig]?
 
     enum CodingKeys: String, CodingKey {
-        case scheme, configuration, destination
+        case run, scheme, configuration, destination
         case archivePath = "archive-path"
         case extraArgs = "extra-args"
         case hooks, variants

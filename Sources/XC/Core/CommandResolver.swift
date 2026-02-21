@@ -1,6 +1,7 @@
 enum CommandResolver {
     struct ResolvedCommand: Sendable {
         let invocation: [String]
+        let script: String?
         let hooks: HookConfig?
         let formatter: String?
     }
@@ -22,7 +23,22 @@ enum CommandResolver {
         }
         let variantConfig = variant.flatMap { commandConfig.variants?[$0] }
 
-        // Layer: variant > command > project defaults > global defaults
+        let hooks = variantConfig?.hooks ?? commandConfig.hooks
+        let formatter = config.global?.settings?.formatter
+
+        // Check if this is a script command
+        let script = variantConfig?.run ?? commandConfig.run
+        if let script {
+            var fullScript = script
+            let scriptExtraArgs = variantConfig?.extraArgs ?? commandConfig.extraArgs ?? []
+            let allArgs = scriptExtraArgs + extraArgs
+            if !allArgs.isEmpty {
+                fullScript += " " + allArgs.joined(separator: " ")
+            }
+            return ResolvedCommand(invocation: [], script: fullScript, hooks: hooks, formatter: formatter)
+        }
+
+        // xcodebuild command — layer: variant > command > project defaults > global defaults
         let scheme = variantConfig?.scheme
             ?? commandConfig.scheme
             ?? config.project.defaults?.scheme
@@ -69,10 +85,7 @@ enum CommandResolver {
         args += configExtraArgs
         args += extraArgs
 
-        let hooks = variantConfig?.hooks ?? commandConfig.hooks
-        let formatter = config.global?.settings?.formatter
-
-        return ResolvedCommand(invocation: args, hooks: hooks, formatter: formatter)
+        return ResolvedCommand(invocation: args, script: nil, hooks: hooks, formatter: formatter)
     }
 
     static func xcodebuildAction(for command: String) -> String {
