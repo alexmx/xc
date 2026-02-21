@@ -26,13 +26,15 @@ xc build:release
 
 ## Why xc?
 
-- **One file, all your build commands** - `xc.yaml` lives in your repo. Everyone on the team runs the same thing.
-- **Variants, not flags** - `build:release`, `test:coverage`, `archive:staging`; switch configurations in two words.
-- **Named destinations** - `sim`, `mac`, `device` instead of `platform=iOS Simulator,name=iPhone 17 Pro`.
-- **Script commands** - Run `swiftlint`, `tuist generate`, or anything else alongside your builds.
-- **Environment variables** - `${CI_SIMULATOR:-iPhone 17 Pro}`; same config, every machine.
-- **Pre/post hooks** - Lint before building, notify after archiving.
-- **xcbeautify built in** - Pretty output by default, `--raw` when you need it.
+Built for fast, repeatable Xcode workflows.
+
+- **One config, shared by all**: Keep commands in `xc.yaml` so everyone runs the same builds.
+- **Variants over flags**: Use `build:release` or `test:coverage` instead of long flag strings.
+- **Named destinations**: Use `sim`, `mac`, or `device` aliases instead of full destination specs.
+- **Script support**: Run tools like `swiftlint` or `tuist generate` as first-class commands.
+- **Env var support**: Use `${VAR}` and `${VAR:-default}` to keep configs portable.
+- **Hooks built in**: Run pre/post steps for linting, setup, or notifications.
+- **Readable output**: Use xcbeautify by default, switch to raw logs with `--raw`.
 
 ---
 
