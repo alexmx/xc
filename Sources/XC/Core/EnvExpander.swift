@@ -58,7 +58,9 @@ enum EnvExpander {
 // MARK: - Config expansion
 
 extension String {
-    var envExpanded: String { EnvExpander.expand(self) }
+    var envExpanded: String {
+        EnvExpander.expand(self)
+    }
 }
 
 extension ProjectConfig {

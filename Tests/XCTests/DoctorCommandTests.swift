@@ -1,9 +1,8 @@
-@testable import xc
 import Testing
+@testable import xc
 
 @Suite("DoctorCommand Tests")
 struct DoctorCommandTests {
-
     // MARK: - extractSimulatorName
 
     @Test("extractSimulatorName from iOS Simulator destination")
@@ -14,7 +13,8 @@ struct DoctorCommandTests {
 
     @Test("extractSimulatorName from destination with extra fields")
     func extractWithExtraFields() {
-        let result = DoctorCommand.extractSimulatorName(from: "platform=iOS Simulator,name=iPad Pro 13-inch (M5),OS=26.2")
+        let result = DoctorCommand
+            .extractSimulatorName(from: "platform=iOS Simulator,name=iPad Pro 13-inch (M5),OS=26.2")
         #expect(result == "iPad Pro 13-inch (M5)")
     }
 
@@ -44,7 +44,7 @@ struct DoctorCommandTests {
                     ]
                 ),
                 "test": CommandConfig(scheme: "TestScheme"),
-                "clean": CommandConfig(),
+                "clean": CommandConfig()
             ]
         )
 
@@ -67,7 +67,7 @@ struct DoctorCommandTests {
             defaults: CommandConfig(scheme: "MyApp"),
             commands: [
                 "build": CommandConfig(scheme: "MyApp"),
-                "test": CommandConfig(scheme: "MyApp"),
+                "test": CommandConfig(scheme: "MyApp")
             ]
         )
         let schemes = DoctorCommand.collectSchemes(from: config)

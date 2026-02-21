@@ -1,6 +1,6 @@
 import Foundation
-@testable import xc
 import Testing
+@testable import xc
 
 @Suite("CommandResolver Tests")
 struct CommandResolverTests {
@@ -12,7 +12,7 @@ struct CommandResolverTests {
             destinations: [
                 "sim": "platform:iOS Simulator,name:iPhone 16",
                 "device": "platform:iOS,name:My iPhone",
-                "mac": "platform:macOS",
+                "mac": "platform:macOS"
             ],
             defaults: CommandConfig(
                 scheme: "MyApp",
@@ -43,7 +43,7 @@ struct CommandResolverTests {
                             extraArgs: ["STAGING=1"]
                         )
                     ]
-                ),
+                )
             ]
         ),
         global: GlobalConfig(
@@ -55,7 +55,7 @@ struct CommandResolverTests {
     let minimalConfig = ConfigLoader.LoadedConfig(
         project: ProjectConfig(
             commands: [
-                "build": CommandConfig(scheme: "Minimal"),
+                "build": CommandConfig(scheme: "Minimal")
             ]
         ),
         global: nil
@@ -78,7 +78,7 @@ struct CommandResolverTests {
             "-project", "MyApp.xcodeproj",
             "-scheme", "MyApp",
             "-configuration", "Debug",
-            "-destination", "platform:iOS Simulator,name:iPhone 16",
+            "-destination", "platform:iOS Simulator,name:iPhone 16"
         ])
     }
 
@@ -97,7 +97,7 @@ struct CommandResolverTests {
             "-project", "MyApp.xcodeproj",
             "-scheme", "MyApp",
             "-configuration", "Release",
-            "-destination", "platform:iOS,name:My iPhone",
+            "-destination", "platform:iOS,name:My iPhone"
         ])
     }
 
@@ -117,7 +117,7 @@ struct CommandResolverTests {
             "-scheme", "MyAppTests",
             "-configuration", "Debug",
             "-destination", "platform:iOS Simulator,name:iPhone 16",
-            "-enableCodeCoverage", "YES",
+            "-enableCodeCoverage", "YES"
         ])
     }
 
@@ -136,7 +136,7 @@ struct CommandResolverTests {
             "-project", "MyApp.xcodeproj",
             "-scheme", "MyApp",
             "-configuration", "Debug",
-            "-destination", "platform:iOS Simulator,name:iPhone 16",
+            "-destination", "platform:iOS Simulator,name:iPhone 16"
         ])
     }
 
@@ -163,7 +163,7 @@ struct CommandResolverTests {
         let config = ConfigLoader.LoadedConfig(
             project: ProjectConfig(
                 commands: [
-                    "build": CommandConfig(xcconfig: "Config/Release.xcconfig"),
+                    "build": CommandConfig(xcconfig: "Config/Release.xcconfig")
                 ]
             ),
             global: nil
@@ -191,7 +191,7 @@ struct CommandResolverTests {
                         variants: [
                             "release": CommandConfig(xcconfig: "Config/Release.xcconfig")
                         ]
-                    ),
+                    )
                 ]
             ),
             global: nil
@@ -217,7 +217,7 @@ struct CommandResolverTests {
                     "build": CommandConfig(
                         scheme: "MyApp",
                         xcconfig: "Config/Debug.xcconfig"
-                    ),
+                    )
                 ]
             ),
             global: nil
@@ -231,8 +231,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        let xcconfigIdx = resolved.invocation.firstIndex(of: "-xcconfig")!
-        let schemeIdx = resolved.invocation.firstIndex(of: "-scheme")!
+        let xcconfigIdx = try #require(resolved.invocation.firstIndex(of: "-xcconfig"))
+        let schemeIdx = try #require(resolved.invocation.firstIndex(of: "-scheme"))
         #expect(xcconfigIdx < schemeIdx)
     }
 
@@ -242,7 +242,7 @@ struct CommandResolverTests {
         let config = ConfigLoader.LoadedConfig(
             project: ProjectConfig(
                 commands: [
-                    "build": CommandConfig(archivePath: "./should-not-appear"),
+                    "build": CommandConfig(archivePath: "./should-not-appear")
                 ]
             ),
             global: nil
@@ -269,7 +269,7 @@ struct CommandResolverTests {
                     "test": CommandConfig(
                         scheme: "MyApp",
                         testPlan: "UnitTests"
-                    ),
+                    )
                 ]
             ),
             global: nil
@@ -288,11 +288,11 @@ struct CommandResolverTests {
     }
 
     @Test("testPlan only added for test actions")
-    func testPlanOnlyForTest() throws {
+    func planOnlyForTest() throws {
         let config = ConfigLoader.LoadedConfig(
             project: ProjectConfig(
                 commands: [
-                    "build": CommandConfig(testPlan: "should-not-appear"),
+                    "build": CommandConfig(testPlan: "should-not-appear")
                 ]
             ),
             global: nil
@@ -310,7 +310,7 @@ struct CommandResolverTests {
     }
 
     @Test("testPlan variant overrides command testPlan")
-    func testPlanVariantOverride() throws {
+    func planVariantOverride() throws {
         let config = ConfigLoader.LoadedConfig(
             project: ProjectConfig(
                 commands: [
@@ -319,7 +319,7 @@ struct CommandResolverTests {
                         variants: [
                             "integration": CommandConfig(testPlan: "IntegrationTests")
                         ]
-                    ),
+                    )
                 ]
             ),
             global: nil
@@ -338,14 +338,14 @@ struct CommandResolverTests {
     }
 
     @Test("testPlan works for test-without-building action")
-    func testPlanTestWithoutBuilding() throws {
+    func planTestWithoutBuilding() throws {
         let config = ConfigLoader.LoadedConfig(
             project: ProjectConfig(
                 commands: [
                     "test-without-building": CommandConfig(
                         scheme: "MyApp",
                         testPlan: "Smoke"
-                    ),
+                    )
                 ]
             ),
             global: nil
@@ -373,7 +373,7 @@ struct CommandResolverTests {
                     "test": CommandConfig(
                         scheme: "MyApp",
                         resultBundlePath: "./results.xcresult"
-                    ),
+                    )
                 ]
             ),
             global: nil
@@ -396,7 +396,7 @@ struct CommandResolverTests {
         let config = ConfigLoader.LoadedConfig(
             project: ProjectConfig(
                 commands: [
-                    "build": CommandConfig(resultBundlePath: "./should-not-appear"),
+                    "build": CommandConfig(resultBundlePath: "./should-not-appear")
                 ]
             ),
             global: nil
@@ -423,7 +423,7 @@ struct CommandResolverTests {
                         variants: [
                             "ci": CommandConfig(resultBundlePath: "/tmp/ci.xcresult")
                         ]
-                    ),
+                    )
                 ]
             ),
             global: nil
@@ -448,7 +448,7 @@ struct CommandResolverTests {
         let config = ConfigLoader.LoadedConfig(
             project: ProjectConfig(
                 commands: [
-                    "build": CommandConfig(derivedDataPath: "./DerivedData"),
+                    "build": CommandConfig(derivedDataPath: "./DerivedData")
                 ]
             ),
             global: nil
@@ -472,7 +472,7 @@ struct CommandResolverTests {
             project: ProjectConfig(
                 defaults: CommandConfig(derivedDataPath: "./DD"),
                 commands: [
-                    "test": CommandConfig(scheme: "MyApp"),
+                    "test": CommandConfig(scheme: "MyApp")
                 ]
             ),
             global: nil
@@ -500,7 +500,7 @@ struct CommandResolverTests {
                         variants: [
                             "ci": CommandConfig(derivedDataPath: "/tmp/ci-dd")
                         ]
-                    ),
+                    )
                 ]
             ),
             global: nil
@@ -523,7 +523,7 @@ struct CommandResolverTests {
     @Test("named destination is expanded")
     func namedDestination() {
         let result = CommandResolver.resolveDestinations(OneOrMany("sim"), destinations: [
-            "sim": "platform:iOS Simulator,name:iPhone 16",
+            "sim": "platform:iOS Simulator,name:iPhone 16"
         ])
         #expect(result == ["platform:iOS Simulator,name:iPhone 16"])
     }
@@ -551,7 +551,7 @@ struct CommandResolverTests {
         )
         #expect(result == [
             "platform:iOS Simulator,name:iPhone 16",
-            "platform:macOS",
+            "platform:macOS"
         ])
     }
 
@@ -561,13 +561,13 @@ struct CommandResolverTests {
             project: ProjectConfig(
                 destinations: [
                     "sim": "platform:iOS Simulator,name:iPhone 16",
-                    "sim-ipad": "platform:iOS Simulator,name:iPad Pro",
+                    "sim-ipad": "platform:iOS Simulator,name:iPad Pro"
                 ],
                 commands: [
                     "test": CommandConfig(
                         scheme: "MyApp",
                         destination: ["sim", "sim-ipad"]
-                    ),
+                    )
                 ]
             ),
             global: nil
@@ -587,7 +587,7 @@ struct CommandResolverTests {
 
         #expect(destFlags == [
             "platform:iOS Simulator,name:iPhone 16",
-            "platform:iOS Simulator,name:iPad Pro",
+            "platform:iOS Simulator,name:iPad Pro"
         ])
     }
 
@@ -660,9 +660,9 @@ struct CommandResolverTests {
                         variants: [
                             "release": CommandConfig(
                                 hooks: HookConfig(pre: "variant-hook")
-                            ),
+                            )
                         ]
-                    ),
+                    )
                 ]
             ),
             global: nil
@@ -819,7 +819,7 @@ struct CommandResolverTests {
 
         #expect(resolved.invocation == [
             "xcodebuild", "build",
-            "-scheme", "Minimal",
+            "-scheme", "Minimal"
         ])
     }
 

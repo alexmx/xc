@@ -1,5 +1,5 @@
-@testable import xc
 import Testing
+@testable import xc
 
 @Suite("RunCommand Tests")
 struct RunCommandTests {

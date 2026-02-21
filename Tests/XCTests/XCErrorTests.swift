@@ -1,5 +1,5 @@
-@testable import xc
 import Testing
+@testable import xc
 
 @Suite("XCError Tests")
 struct XCErrorTests {
@@ -18,26 +18,26 @@ struct XCErrorTests {
     }
 
     @Test("unknownCommand message lists available commands sorted")
-    func unknownCommand() {
+    func unknownCommand() throws {
         let error = XCError.unknownCommand("deploy", available: ["test", "build", "clean"])
-        let message = error.errorDescription!
+        let message = try #require(error.errorDescription)
         #expect(message.contains("Unknown command 'deploy'"))
         #expect(message.contains("build, clean, test"))
     }
 
     @Test("unknownVariant message lists available variants sorted")
-    func unknownVariant() {
+    func unknownVariant() throws {
         let error = XCError.unknownVariant("build", "staging", available: ["release", "debug"])
-        let message = error.errorDescription!
+        let message = try #require(error.errorDescription)
         #expect(message.contains("Unknown variant 'staging'"))
         #expect(message.contains("command 'build'"))
         #expect(message.contains("debug, release"))
     }
 
     @Test("unknownVariant message when no variants defined")
-    func unknownVariantEmpty() {
+    func unknownVariantEmpty() throws {
         let error = XCError.unknownVariant("build", "release", available: [])
-        let message = error.errorDescription!
+        let message = try #require(error.errorDescription)
         #expect(message.contains("No variants are defined"))
     }
 
@@ -48,9 +48,9 @@ struct XCErrorTests {
     }
 
     @Test("hookFailed message includes label and exit code")
-    func hookFailed() {
+    func hookFailed() throws {
         let error = XCError.hookFailed("pre-build", 1)
-        let message = error.errorDescription!
+        let message = try #require(error.errorDescription)
         #expect(message.contains("pre-build"))
         #expect(message.contains("1"))
     }

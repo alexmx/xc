@@ -1,6 +1,6 @@
 import Foundation
-@testable import xc
 import Testing
+@testable import xc
 import Yams
 
 @Suite("ConfigLoader Tests")
@@ -10,39 +10,39 @@ struct ConfigLoaderTests {
     @Test("parse full config YAML")
     func parseFullConfig() throws {
         let yaml = """
-            project: MyApp.xcodeproj
-
-            destinations:
-              sim: "platform:iOS Simulator,name:iPhone 16"
-              device: "platform:iOS,name:My iPhone"
-
-            defaults:
-              scheme: MyApp
-              configuration: Debug
-              destination: sim
-
-            commands:
-              build:
-                hooks:
-                  pre: "swiftlint lint"
-                  post: "echo done"
-                variants:
-                  release:
-                    configuration: Release
-                    destination: device
-
-              test:
-                scheme: MyAppTests
-                extra-args:
-                  - "-enableCodeCoverage"
-                  - "YES"
-
-              clean: {}
-
-              archive:
+        project: MyApp.xcodeproj
+        
+        destinations:
+          sim: "platform:iOS Simulator,name:iPhone 16"
+          device: "platform:iOS,name:My iPhone"
+        
+        defaults:
+          scheme: MyApp
+          configuration: Debug
+          destination: sim
+        
+        commands:
+          build:
+            hooks:
+              pre: "swiftlint lint"
+              post: "echo done"
+            variants:
+              release:
                 configuration: Release
-                archive-path: "./build/MyApp.xcarchive"
-            """
+                destination: device
+        
+          test:
+            scheme: MyAppTests
+            extra-args:
+              - "-enableCodeCoverage"
+              - "YES"
+        
+          clean: {}
+        
+          archive:
+            configuration: Release
+            archive-path: "./build/MyApp.xcarchive"
+        """
 
         let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
 
@@ -74,10 +74,10 @@ struct ConfigLoaderTests {
     @Test("parse minimal config with only commands")
     func parseMinimalConfig() throws {
         let yaml = """
-            commands:
-              build:
-                scheme: MyApp
-            """
+        commands:
+          build:
+            scheme: MyApp
+        """
 
         let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
 
@@ -91,10 +91,10 @@ struct ConfigLoaderTests {
     @Test("parse workspace config")
     func parseWorkspaceConfig() throws {
         let yaml = """
-            workspace: MyApp.xcworkspace
-            commands:
-              build: {}
-            """
+        workspace: MyApp.xcworkspace
+        commands:
+          build: {}
+        """
 
         let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
 
@@ -105,13 +105,13 @@ struct ConfigLoaderTests {
     @Test("parse global config")
     func parseGlobalConfig() throws {
         let yaml = """
-            defaults:
-              destination: "platform:iOS Simulator,name:iPhone 16"
-
-            settings:
-              formatter: xcbeautify
-              verbose: false
-            """
+        defaults:
+          destination: "platform:iOS Simulator,name:iPhone 16"
+        
+        settings:
+          formatter: xcbeautify
+          verbose: false
+        """
 
         let config = try YAMLDecoder().decode(GlobalConfig.self, from: yaml)
 
@@ -123,18 +123,18 @@ struct ConfigLoaderTests {
     @Test("parse config with multiple variants")
     func parseMultipleVariants() throws {
         let yaml = """
-            commands:
-              build:
-                scheme: MyApp
-                configuration: Debug
-                variants:
-                  release:
-                    configuration: Release
-                  staging:
-                    configuration: Release
-                    extra-args:
-                      - "STAGING=1"
-            """
+        commands:
+          build:
+            scheme: MyApp
+            configuration: Debug
+            variants:
+              release:
+                configuration: Release
+              staging:
+                configuration: Release
+                extra-args:
+                  - "STAGING=1"
+        """
 
         let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
 
@@ -147,16 +147,16 @@ struct ConfigLoaderTests {
     @Test("parse config with hooks at variant level")
     func parseVariantHooks() throws {
         let yaml = """
-            commands:
-              build:
+        commands:
+          build:
+            hooks:
+              pre: "base-pre"
+            variants:
+              release:
                 hooks:
-                  pre: "base-pre"
-                variants:
-                  release:
-                    hooks:
-                      pre: "release-pre"
-                      post: "release-post"
-            """
+                  pre: "release-pre"
+                  post: "release-post"
+        """
 
         let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
 

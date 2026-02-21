@@ -9,11 +9,11 @@ let project = Project(
             product: .app,
             bundleId: "dev.xc.sample-mac-app",
             infoPlist: .extendingDefault(with: [
-                "LSMinimumSystemVersion": "14.0",
+                "LSMinimumSystemVersion": "14.0"
             ]),
             sources: "App/Sources/**",
             dependencies: [
-                .target(name: "Core"),
+                .target(name: "Core")
             ]
         ),
         .target(
@@ -24,7 +24,7 @@ let project = Project(
             infoPlist: .default,
             sources: "AppTests/**",
             dependencies: [
-                .target(name: "SampleMacApp"),
+                .target(name: "SampleMacApp")
             ]
         ),
         .target(
@@ -44,9 +44,9 @@ let project = Project(
             infoPlist: .default,
             sources: "CoreTests/**",
             dependencies: [
-                .target(name: "Core"),
+                .target(name: "Core")
             ]
-        ),
+        )
     ],
     schemes: [
         .scheme(
@@ -63,6 +63,6 @@ let project = Project(
             buildAction: .buildAction(targets: ["Core"]),
             testAction: .targets(["CoreTests"]),
             runAction: .runAction(configuration: .debug)
-        ),
+        )
     ]
 )

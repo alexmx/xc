@@ -7,6 +7,10 @@ struct ListCommand: ParsableCommand {
     )
 
     func run() throws {
+        try Self.printCommands()
+    }
+
+    static func printCommands() throws {
         let config = try ConfigLoader.load()
         let commands = config.project.commands ?? [:]
 
@@ -16,15 +20,20 @@ struct ListCommand: ParsableCommand {
         }
 
         for (name, command) in commands.sorted(by: { $0.key < $1.key }) {
-            print(name)
+            let summary = summarizeCommand(command)
+            if summary.isEmpty {
+                print(name)
+            } else {
+                print("\(name)\t\(summary)")
+            }
 
             let variants = command.variants ?? [:]
             for (variantName, variant) in variants.sorted(by: { $0.key < $1.key }) {
-                let summary = Self.summarizeVariant(variant)
-                if summary.isEmpty {
+                let variantSummary = summarizeVariant(variant)
+                if variantSummary.isEmpty {
                     print("  :\(variantName)")
                 } else {
-                    print("  :\(variantName)\t\(summary)")
+                    print("  :\(variantName)\t\(variantSummary)")
                 }
             }
         }

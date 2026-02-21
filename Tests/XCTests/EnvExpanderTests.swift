@@ -1,9 +1,8 @@
-@testable import xc
 import Testing
+@testable import xc
 
 @Suite("EnvExpander Tests")
 struct EnvExpanderTests {
-
     // MARK: - expand
 
     @Test("no variables returns string unchanged")

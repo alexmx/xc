@@ -27,7 +27,7 @@ struct RunCommand: AsyncParsableCommand {
 
     func run() async throws {
         guard let command else {
-            showStatus()
+            try ListCommand.printCommands()
             return
         }
 
@@ -45,82 +45,47 @@ struct RunCommand: AsyncParsableCommand {
 
         let projectRoot = config.projectRoot
 
-        if let script = resolved.script {
-            // Script command
-            if dryRun {
+        // Dry-run: print the resolved command and exit
+        if dryRun {
+            if let script = resolved.script {
                 print(script)
-                return
+            } else {
+                print(Self.shellEscape(resolved.invocation))
             }
+            return
+        }
 
-            if let preHook = resolved.hooks?.pre {
-                try HookRunner.run(preHook, label: "pre-\(commandName)", workingDirectory: projectRoot)
-            }
+        // Pre-hook
+        if let preHook = resolved.hooks?.pre {
+            try HookRunner.run(preHook, label: "pre-\(commandName)", workingDirectory: projectRoot)
+        }
 
-            if verbose {
+        // Verbose
+        if verbose {
+            if let script = resolved.script {
                 print("$ \(script)")
-                fflush(stdout)
+            } else {
+                print("$ \(Self.shellEscape(resolved.invocation))")
             }
+            fflush(stdout)
+        }
 
-            try HookRunner.run(script, label: commandName, workingDirectory: projectRoot)
-
-            if let postHook = resolved.hooks?.post {
-                try HookRunner.run(postHook, label: "post-\(commandName)", workingDirectory: projectRoot)
-            }
+        // Execute
+        if let script = resolved.script {
+            try HookRunner.run(script, label: commandName, workingDirectory: projectRoot, quiet: true)
         } else {
-            // xcodebuild command
-            if dryRun {
-                let shellSafe = resolved.invocation.map { arg in
-                    arg.contains(" ") ? "\"\(arg)\"" : arg
-                }.joined(separator: " ")
-                print(shellSafe)
-                return
-            }
-
-            if let preHook = resolved.hooks?.pre {
-                try HookRunner.run(preHook, label: "pre-\(commandName)", workingDirectory: projectRoot)
-            }
-
-            if verbose {
-                let shellSafe = resolved.invocation.map { arg in
-                    arg.contains(" ") ? "\"\(arg)\"" : arg
-                }.joined(separator: " ")
-                print("$ \(shellSafe)")
-                fflush(stdout)
-            }
-
             let useFormatter = !raw && resolved.formatter != "raw"
             try CommandRunner.exec(args: resolved.invocation, useFormatter: useFormatter, workingDirectory: projectRoot)
+        }
 
-            if let postHook = resolved.hooks?.post {
-                try HookRunner.run(postHook, label: "post-\(commandName)", workingDirectory: projectRoot)
-            }
+        // Post-hook
+        if let postHook = resolved.hooks?.post {
+            try HookRunner.run(postHook, label: "post-\(commandName)", workingDirectory: projectRoot)
         }
     }
 
-    private func showStatus() {
-        guard let config = try? ConfigLoader.load() else {
-            print("No xc.yaml found. Run 'xc init' to generate one.")
-            return
-        }
-
-        let commands = config.project.commands ?? [:]
-        guard !commands.isEmpty else {
-            print("No commands defined in xc.yaml.")
-            return
-        }
-
-        for (name, command) in commands.sorted(by: { $0.key < $1.key }) {
-            print(name)
-            let variants = command.variants ?? [:]
-            for (variantName, variant) in variants.sorted(by: { $0.key < $1.key }) {
-                let summary = ListCommand.summarizeVariant(variant)
-                if summary.isEmpty {
-                    print("  :\(variantName)")
-                } else {
-                    print("  :\(variantName)\t\(summary)")
-                }
-            }
-        }
+    static func shellEscape(_ args: [String]) -> String {
+        args.map { $0.contains(" ") ? "\"\($0)\"" : $0 }.joined(separator: " ")
     }
 
     static func parseCommand(_ input: String) -> (command: String, variant: String?) {

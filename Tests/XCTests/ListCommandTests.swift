@@ -1,9 +1,8 @@
-@testable import xc
 import Testing
+@testable import xc
 
 @Suite("ListCommand Tests")
 struct ListCommandTests {
-
     @Test("summarizeVariant with configuration only")
     func summarizeConfiguration() {
         let variant = CommandConfig(configuration: "Release")

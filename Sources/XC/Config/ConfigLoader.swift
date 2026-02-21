@@ -25,7 +25,7 @@ enum ConfigLoader {
         if config.project != nil && config.workspace != nil {
             throw XCError.invalidConfig("Both 'project' and 'workspace' are set. Use one or the other.")
         }
-        if config.commands == nil || config.commands!.isEmpty {
+        if (config.commands ?? [:]).isEmpty {
             throw XCError.invalidConfig("No commands defined. Add a 'commands' section to xc.yaml.")
         }
     }

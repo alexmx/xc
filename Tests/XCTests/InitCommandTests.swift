@@ -1,9 +1,8 @@
-@testable import xc
 import Testing
+@testable import xc
 
 @Suite("InitCommand Tests")
 struct InitCommandTests {
-
     // MARK: - pickPrimaryScheme
 
     @Test("pickPrimaryScheme matches project name")

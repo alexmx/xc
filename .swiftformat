@@ -1,0 +1,10 @@
+--disable unusedArguments, wrapMultilineStatementBraces, hoistPatternLet, preferKeyPath, extensionAccessControl, modifierOrder, andOperator, initCoderUnavailable, redundantReturn
+--trailing-commas never
+--ranges no-space
+--max-width 120
+--wrap-arguments before-first
+--wrap-parameters before-first
+--wrap-collections before-first
+--trim-whitespace nonblank-lines
+--self init-only
+--ifdef no-indent

@@ -21,9 +21,9 @@ struct OneOrMany: Codable, Sendable, Equatable, ExpressibleByStringLiteral, Expr
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let single = try? container.decode(String.self) {
-            values = [single]
+            self.values = [single]
         } else {
-            values = try container.decode([String].self)
+            self.values = try container.decode([String].self)
         }
     }
 

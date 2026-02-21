@@ -1,8 +1,10 @@
 import Foundation
 
 enum HookRunner {
-    static func run(_ command: String, label: String, workingDirectory: String? = nil) throws {
-        print("→ Running \(label) hook...")
+    static func run(_ command: String, label: String, workingDirectory: String? = nil, quiet: Bool = false) throws {
+        if !quiet {
+            print("→ Running \(label) hook...")
+        }
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")

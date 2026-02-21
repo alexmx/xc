@@ -62,8 +62,11 @@ struct DoctorCommand: ParsableCommand {
                 if availableSchemes.contains(scheme) {
                     printCheck("Scheme: \(scheme)", status: .ok)
                 } else {
-                    printCheck("Scheme: \(scheme)", status: .fail,
-                               detail: "Not found. Available: \(availableSchemes.sorted().joined(separator: ", "))")
+                    printCheck(
+                        "Scheme: \(scheme)",
+                        status: .fail,
+                        detail: "Not found. Available: \(availableSchemes.sorted().joined(separator: ", "))"
+                    )
                     hasErrors = true
                 }
             }
@@ -80,8 +83,11 @@ struct DoctorCommand: ParsableCommand {
                     if installedSimulators.contains(simName) {
                         printCheck("Dest: \(name)", status: .ok, detail: simName)
                     } else {
-                        printCheck("Dest: \(name)", status: .fail,
-                                   detail: "\(simName) not found. Run 'xc destinations' to see available simulators.")
+                        printCheck(
+                            "Dest: \(name)",
+                            status: .fail,
+                            detail: "\(simName) not found. Run 'xc destinations' to see available simulators."
+                        )
                         hasErrors = true
                     }
                 } else {
@@ -94,7 +100,11 @@ struct DoctorCommand: ParsableCommand {
         if CommandRunner.findXcbeautify() != nil {
             printCheck("xcbeautify", status: .ok)
         } else {
-            printCheck("xcbeautify", status: .warn, detail: "Not installed. Output will be raw. Install: brew install xcbeautify")
+            printCheck(
+                "xcbeautify",
+                status: .warn,
+                detail: "Not installed. Output will be raw. Install: brew install xcbeautify"
+            )
         }
 
         // 7. Check global config

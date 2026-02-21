@@ -1,6 +1,6 @@
 import Foundation
-@testable import xc
 import Testing
+@testable import xc
 
 @Suite("ConfigLoader Integration Tests")
 struct ConfigLoaderIntegrationTests {
@@ -19,10 +19,10 @@ struct ConfigLoaderIntegrationTests {
     func loadProjectConfigSuccess() throws {
         try withTempDirectory { dir in
             let yaml = """
-                commands:
-                  build:
-                    scheme: TestApp
-                """
+            commands:
+              build:
+                scheme: TestApp
+            """
             try yaml.write(toFile: dir + "/xc.yaml", atomically: true, encoding: .utf8)
 
             let (config, root) = try ConfigLoader.loadProjectConfig(from: dir)
@@ -48,10 +48,10 @@ struct ConfigLoaderIntegrationTests {
     func loadProjectConfigInvalidYAML() throws {
         try withTempDirectory { dir in
             let badYaml = """
-                commands:
-                  build:
-                    scheme: [unterminated
-                """
+            commands:
+              build:
+                scheme: [unterminated
+            """
             try badYaml.write(toFile: dir + "/xc.yaml", atomically: true, encoding: .utf8)
 
             #expect(throws: Error.self) {
@@ -66,10 +66,10 @@ struct ConfigLoaderIntegrationTests {
     func loadProjectConfigWalksUp() throws {
         try withTempDirectory { dir in
             let yaml = """
-                commands:
-                  build:
-                    scheme: WalkUpApp
-                """
+            commands:
+              build:
+                scheme: WalkUpApp
+            """
             try yaml.write(toFile: dir + "/xc.yaml", atomically: true, encoding: .utf8)
 
             let subdir = dir + "/Sources/Feature"
@@ -85,19 +85,19 @@ struct ConfigLoaderIntegrationTests {
     func loadProjectConfigClosestWins() throws {
         try withTempDirectory { dir in
             let outerYaml = """
-                commands:
-                  build:
-                    scheme: Outer
-                """
+            commands:
+              build:
+                scheme: Outer
+            """
             try outerYaml.write(toFile: dir + "/xc.yaml", atomically: true, encoding: .utf8)
 
             let innerDir = dir + "/packages/inner"
             try FileManager.default.createDirectory(atPath: innerDir, withIntermediateDirectories: true)
             let innerYaml = """
-                commands:
-                  build:
-                    scheme: Inner
-                """
+            commands:
+              build:
+                scheme: Inner
+            """
             try innerYaml.write(toFile: innerDir + "/xc.yaml", atomically: true, encoding: .utf8)
 
             let (config, root) = try ConfigLoader.loadProjectConfig(from: innerDir)
@@ -112,11 +112,11 @@ struct ConfigLoaderIntegrationTests {
     func loadValidates() throws {
         try withTempDirectory { dir in
             let yaml = """
-                project: App.xcodeproj
-                workspace: App.xcworkspace
-                commands:
-                  build: {}
-                """
+            project: App.xcodeproj
+            workspace: App.xcworkspace
+            commands:
+              build: {}
+            """
             try yaml.write(toFile: dir + "/xc.yaml", atomically: true, encoding: .utf8)
 
             #expect(throws: XCError.self) {
@@ -129,17 +129,17 @@ struct ConfigLoaderIntegrationTests {
     func loadSuccess() throws {
         try withTempDirectory { dir in
             let yaml = """
-                project: App.xcodeproj
-                destinations:
-                  sim: "platform=iOS Simulator,name=iPhone 17 Pro"
-                defaults:
-                  scheme: App
-                commands:
-                  build:
-                    configuration: Debug
-                  test:
-                    scheme: AppTests
-                """
+            project: App.xcodeproj
+            destinations:
+              sim: "platform=iOS Simulator,name=iPhone 17 Pro"
+            defaults:
+              scheme: App
+            commands:
+              build:
+                configuration: Debug
+              test:
+                scheme: AppTests
+            """
             try yaml.write(toFile: dir + "/xc.yaml", atomically: true, encoding: .utf8)
 
             let loaded = try ConfigLoader.load(from: dir)
