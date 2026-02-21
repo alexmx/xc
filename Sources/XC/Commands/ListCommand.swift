@@ -51,7 +51,17 @@ struct ListCommand: ParsableCommand {
             parts.append("configuration: \(config)")
         }
         if let dest = variant.destination {
-            parts.append("destination: \(dest)")
+            let display = dest.values.joined(separator: ", ")
+            parts.append("destination: \(display)")
+        }
+        if let testPlan = variant.testPlan {
+            parts.append("test-plan: \(testPlan)")
+        }
+        if let rbp = variant.resultBundlePath {
+            parts.append("result-bundle-path: \(rbp)")
+        }
+        if let ddp = variant.derivedDataPath {
+            parts.append("derived-data-path: \(ddp)")
         }
         if let args = variant.extraArgs, !args.isEmpty {
             parts.append("extra-args: \(args.joined(separator: " "))")

@@ -52,13 +52,13 @@ struct ConfigLoaderTests {
         #expect(config.destinations?["device"] == "platform:iOS,name:My iPhone")
         #expect(config.defaults?.scheme == "MyApp")
         #expect(config.defaults?.configuration == "Debug")
-        #expect(config.defaults?.destination == "sim")
+        #expect(config.defaults?.destination == OneOrMany("sim"))
 
         let buildCmd = try #require(config.commands?["build"])
         #expect(buildCmd.hooks?.pre == "swiftlint lint")
         #expect(buildCmd.hooks?.post == "echo done")
         #expect(buildCmd.variants?["release"]?.configuration == "Release")
-        #expect(buildCmd.variants?["release"]?.destination == "device")
+        #expect(buildCmd.variants?["release"]?.destination == OneOrMany("device"))
 
         let testCmd = try #require(config.commands?["test"])
         #expect(testCmd.scheme == "MyAppTests")
@@ -115,7 +115,7 @@ struct ConfigLoaderTests {
 
         let config = try YAMLDecoder().decode(GlobalConfig.self, from: yaml)
 
-        #expect(config.defaults?.destination == "platform:iOS Simulator,name:iPhone 16")
+        #expect(config.defaults?.destination == OneOrMany("platform:iOS Simulator,name:iPhone 16"))
         #expect(config.settings?.formatter == "xcbeautify")
         #expect(config.settings?.verbose == false)
     }

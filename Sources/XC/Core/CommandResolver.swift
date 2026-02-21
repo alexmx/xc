@@ -49,11 +49,26 @@ enum CommandResolver {
             ?? config.project.defaults?.configuration
             ?? config.global?.defaults?.configuration
 
-        let rawDest = destOverride
+        let rawDest: OneOrMany? = destOverride.map { OneOrMany($0) }
             ?? variantConfig?.destination
             ?? commandConfig.destination
             ?? config.project.defaults?.destination
             ?? config.global?.defaults?.destination
+
+        let testPlan = variantConfig?.testPlan
+            ?? commandConfig.testPlan
+            ?? config.project.defaults?.testPlan
+            ?? config.global?.defaults?.testPlan
+
+        let resultBundlePath = variantConfig?.resultBundlePath
+            ?? commandConfig.resultBundlePath
+            ?? config.project.defaults?.resultBundlePath
+            ?? config.global?.defaults?.resultBundlePath
+
+        let derivedDataPath = variantConfig?.derivedDataPath
+            ?? commandConfig.derivedDataPath
+            ?? config.project.defaults?.derivedDataPath
+            ?? config.global?.defaults?.derivedDataPath
 
         let archivePath = variantConfig?.archivePath
             ?? commandConfig.archivePath
@@ -62,7 +77,7 @@ enum CommandResolver {
             ?? commandConfig.extraArgs
             ?? []
 
-        let destination = resolveDestination(rawDest, destinations: config.project.destinations)
+        let resolvedDests = resolveDestinations(rawDest, destinations: config.project.destinations)
 
         let action = xcodebuildAction(for: commandName)
 
@@ -76,7 +91,16 @@ enum CommandResolver {
 
         if let scheme { args += ["-scheme", scheme] }
         if let configuration { args += ["-configuration", configuration] }
-        if let destination { args += ["-destination", destination] }
+        for dest in resolvedDests {
+            args += ["-destination", dest]
+        }
+
+        if let derivedDataPath { args += ["-derivedDataPath", derivedDataPath] }
+
+        if action == "test" || action == "test-without-building" {
+            if let testPlan { args += ["-testPlan", testPlan] }
+            if let resultBundlePath { args += ["-resultBundlePath", resultBundlePath] }
+        }
 
         if let archivePath, action == "archive" {
             args += ["-archivePath", archivePath]
@@ -92,8 +116,8 @@ enum CommandResolver {
         command
     }
 
-    static func resolveDestination(_ raw: String?, destinations: [String: String]?) -> String? {
-        guard let raw else { return nil }
-        return destinations?[raw] ?? raw
+    static func resolveDestinations(_ raw: OneOrMany?, destinations: [String: String]?) -> [String] {
+        guard let raw else { return [] }
+        return raw.values.map { destinations?[$0] ?? $0 }
     }
 }

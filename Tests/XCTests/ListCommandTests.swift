@@ -50,6 +50,13 @@ struct ListCommandTests {
         #expect(result == "")
     }
 
+    @Test("summarizeVariant with test-plan")
+    func summarizeTestPlan() {
+        let variant = CommandConfig(testPlan: "IntegrationTests")
+        let result = ListCommand.summarizeVariant(variant)
+        #expect(result == "test-plan: IntegrationTests")
+    }
+
     @Test("summarizeCommand shows run for script command")
     func summarizeScriptCommand() {
         let command = CommandConfig(run: "swiftlint lint --strict")

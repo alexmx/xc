@@ -179,29 +179,336 @@ struct CommandResolverTests {
         #expect(!resolved.invocation.contains("-archivePath"))
     }
 
+    // MARK: - Test Plan
+
+    @Test("resolve test with testPlan")
+    func resolveTestPlan() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "test": CommandConfig(
+                        scheme: "MyApp",
+                        testPlan: "UnitTests"
+                    ),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "test",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.invocation.contains("-testPlan"))
+        #expect(resolved.invocation.contains("UnitTests"))
+    }
+
+    @Test("testPlan only added for test actions")
+    func testPlanOnlyForTest() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "build": CommandConfig(testPlan: "should-not-appear"),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "build",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(!resolved.invocation.contains("-testPlan"))
+    }
+
+    @Test("testPlan variant overrides command testPlan")
+    func testPlanVariantOverride() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "test": CommandConfig(
+                        testPlan: "UnitTests",
+                        variants: [
+                            "integration": CommandConfig(testPlan: "IntegrationTests")
+                        ]
+                    ),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "test",
+            variant: "integration",
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.invocation.contains("IntegrationTests"))
+        #expect(!resolved.invocation.contains("UnitTests"))
+    }
+
+    @Test("testPlan works for test-without-building action")
+    func testPlanTestWithoutBuilding() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "test-without-building": CommandConfig(
+                        scheme: "MyApp",
+                        testPlan: "Smoke"
+                    ),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "test-without-building",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.invocation.contains("-testPlan"))
+        #expect(resolved.invocation.contains("Smoke"))
+    }
+
+    // MARK: - Result Bundle Path
+
+    @Test("resolve test with resultBundlePath")
+    func resolveResultBundlePath() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "test": CommandConfig(
+                        scheme: "MyApp",
+                        resultBundlePath: "./results.xcresult"
+                    ),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "test",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.invocation.contains("-resultBundlePath"))
+        #expect(resolved.invocation.contains("./results.xcresult"))
+    }
+
+    @Test("resultBundlePath only added for test actions")
+    func resultBundlePathOnlyForTest() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "build": CommandConfig(resultBundlePath: "./should-not-appear"),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "build",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(!resolved.invocation.contains("-resultBundlePath"))
+    }
+
+    @Test("resultBundlePath variant overrides command")
+    func resultBundlePathVariantOverride() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "test": CommandConfig(
+                        resultBundlePath: "./local.xcresult",
+                        variants: [
+                            "ci": CommandConfig(resultBundlePath: "/tmp/ci.xcresult")
+                        ]
+                    ),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "test",
+            variant: "ci",
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.invocation.contains("/tmp/ci.xcresult"))
+        #expect(!resolved.invocation.contains("./local.xcresult"))
+    }
+
+    // MARK: - Derived Data Path
+
+    @Test("resolve build with derivedDataPath")
+    func resolveDerivedDataPath() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "build": CommandConfig(derivedDataPath: "./DerivedData"),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "build",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.invocation.contains("-derivedDataPath"))
+        #expect(resolved.invocation.contains("./DerivedData"))
+    }
+
+    @Test("derivedDataPath from defaults applies to all actions")
+    func derivedDataPathFromDefaults() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                defaults: CommandConfig(derivedDataPath: "./DD"),
+                commands: [
+                    "test": CommandConfig(scheme: "MyApp"),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "test",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.invocation.contains("-derivedDataPath"))
+        #expect(resolved.invocation.contains("./DD"))
+    }
+
+    @Test("derivedDataPath variant overrides command")
+    func derivedDataPathVariantOverride() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "build": CommandConfig(
+                        derivedDataPath: "./DD",
+                        variants: [
+                            "ci": CommandConfig(derivedDataPath: "/tmp/ci-dd")
+                        ]
+                    ),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "build",
+            variant: "ci",
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.invocation.contains("/tmp/ci-dd"))
+        #expect(!resolved.invocation.contains("./DD"))
+    }
+
     // MARK: - Destination Resolution
 
     @Test("named destination is expanded")
     func namedDestination() {
-        let result = CommandResolver.resolveDestination("sim", destinations: [
+        let result = CommandResolver.resolveDestinations(OneOrMany("sim"), destinations: [
             "sim": "platform:iOS Simulator,name:iPhone 16",
         ])
-        #expect(result == "platform:iOS Simulator,name:iPhone 16")
+        #expect(result == ["platform:iOS Simulator,name:iPhone 16"])
     }
 
     @Test("raw destination passes through")
     func rawDestination() {
-        let result = CommandResolver.resolveDestination(
-            "platform:macOS",
+        let result = CommandResolver.resolveDestinations(
+            OneOrMany("platform:macOS"),
             destinations: ["sim": "platform:iOS Simulator,name:iPhone 16"]
         )
-        #expect(result == "platform:macOS")
+        #expect(result == ["platform:macOS"])
     }
 
-    @Test("nil destination returns nil")
+    @Test("nil destination returns empty")
     func nilDestination() {
-        let result = CommandResolver.resolveDestination(nil, destinations: ["sim": "test"])
-        #expect(result == nil)
+        let result = CommandResolver.resolveDestinations(nil, destinations: ["sim": "test"])
+        #expect(result.isEmpty)
+    }
+
+    @Test("multiple destinations are all resolved")
+    func multipleDestinations() {
+        let result = CommandResolver.resolveDestinations(
+            OneOrMany(["sim", "platform:macOS"]),
+            destinations: ["sim": "platform:iOS Simulator,name:iPhone 16"]
+        )
+        #expect(result == [
+            "platform:iOS Simulator,name:iPhone 16",
+            "platform:macOS",
+        ])
+    }
+
+    @Test("multiple destinations emit multiple flags in invocation")
+    func multipleDestinationsInvocation() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                destinations: [
+                    "sim": "platform:iOS Simulator,name:iPhone 16",
+                    "sim-ipad": "platform:iOS Simulator,name:iPad Pro",
+                ],
+                commands: [
+                    "test": CommandConfig(
+                        scheme: "MyApp",
+                        destination: ["sim", "sim-ipad"]
+                    ),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "test",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        let destFlags = resolved.invocation.enumerated().filter {
+            $0.element == "-destination"
+        }.map { resolved.invocation[$0.offset + 1] }
+
+        #expect(destFlags == [
+            "platform:iOS Simulator,name:iPhone 16",
+            "platform:iOS Simulator,name:iPad Pro",
+        ])
     }
 
     @Test("CLI dest override takes priority")

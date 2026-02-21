@@ -79,12 +79,21 @@ extension CommandConfig {
             run: run?.envExpanded,
             scheme: scheme?.envExpanded,
             configuration: configuration?.envExpanded,
-            destination: destination?.envExpanded,
+            destination: destination?.expandingEnvVars(),
+            testPlan: testPlan?.envExpanded,
+            resultBundlePath: resultBundlePath?.envExpanded,
+            derivedDataPath: derivedDataPath?.envExpanded,
             archivePath: archivePath?.envExpanded,
             extraArgs: extraArgs?.map { $0.envExpanded },
             hooks: hooks?.expandingEnvVars(),
             variants: variants?.mapValues { $0.expandingEnvVars() }
         )
+    }
+}
+
+extension OneOrMany {
+    func expandingEnvVars() -> OneOrMany {
+        OneOrMany(values.map { $0.envExpanded })
     }
 }
 
