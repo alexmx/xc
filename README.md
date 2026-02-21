@@ -52,6 +52,12 @@ To update:
 brew upgrade alexmx/tools/xc
 ```
 
+### Mise
+
+```bash
+mise use --global github:alexmx/xc
+```
+
 ## Quick Start
 
 ```bash
