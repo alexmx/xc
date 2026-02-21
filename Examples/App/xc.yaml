@@ -1,0 +1,50 @@
+# xc configuration for SampleApp
+# Generated workspace: SampleApp.xcworkspace (via tuist generate)
+
+workspace: SampleApp.xcworkspace
+
+# Named destinations
+destinations:
+  sim: "platform=iOS Simulator,name=iPhone 17 Pro"
+  sim-ipad: "platform=iOS Simulator,name=iPad Pro 13-inch (M5)"
+  mac: "platform=macOS"
+
+# Defaults applied to all commands
+defaults:
+  scheme: SampleApp
+  configuration: Debug
+  destination: sim
+
+# Command definitions
+commands:
+  build:
+    hooks:
+      pre: "echo '==> Building SampleApp...'"
+      post: "echo '==> Build finished.'"
+    variants:
+      release:
+        configuration: Release
+      ipad:
+        destination: sim-ipad
+      core:
+        scheme: Core
+
+  test:
+    hooks:
+      pre: "echo '==> Running tests...'"
+    variants:
+      core:
+        scheme: Core
+      all:
+        extra-args:
+          - "-enableCodeCoverage"
+          - "YES"
+
+  clean: {}
+
+  archive:
+    configuration: Release
+    archive-path: "./build/SampleApp.xcarchive"
+    hooks:
+      pre: "echo '==> Archiving SampleApp...'"
+      post: "echo '==> Archive complete.'"

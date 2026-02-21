@@ -1,4 +1,5 @@
 import ArgumentParser
+import Foundation
 
 struct RunCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
@@ -18,7 +19,7 @@ struct RunCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Override destination (name or raw destination string)")
     var dest: String?
 
-    @Argument(parsing: .captureForPassthrough)
+    @Argument(parsing: .postTerminator)
     var passthroughArgs: [String] = []
 
     func run() async throws {
@@ -40,6 +41,7 @@ struct RunCommand: AsyncParsableCommand {
 
         if verbose {
             print("$ \(resolved.invocation.joined(separator: " "))")
+            fflush(stdout)
         }
 
         let useFormatter = !raw && resolved.formatter != "raw"
