@@ -58,6 +58,13 @@ brew upgrade alexmx/tools/xc
 mise use --global github:alexmx/xc
 ```
 
+Or in `mise.toml` for a project-scoped install:
+
+```toml
+[tools]
+"github:alexmx/xc" = "latest"
+```
+
 ## Quick Start
 
 ```bash
