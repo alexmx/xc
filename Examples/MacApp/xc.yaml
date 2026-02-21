@@ -32,9 +32,26 @@ commands:
     variants:
       core:
         scheme: Core
+      coverage:
+        extra-args:
+          - "-enableCodeCoverage"
+          - "YES"
 
   clean: {}
 
   archive:
     configuration: Release
-    archive-path: "./build/SampleMacApp.xcarchive"
+    archive-path: "${BUILD_DIR:-./build}/SampleMacApp.xcarchive"
+
+  # Script commands
+  generate:
+    run: "tuist generate"
+
+  lint:
+    run: "swiftlint lint --quiet"
+    variants:
+      fix:
+        run: "swiftlint lint --fix"
+
+  loc:
+    run: "find Sources -name '*.swift' | xargs wc -l | tail -1"

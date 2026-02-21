@@ -3,9 +3,9 @@
 
 workspace: SampleApp.xcworkspace
 
-# Named destinations
+# Named destinations — use env vars for CI flexibility
 destinations:
-  sim: "platform=iOS Simulator,name=iPhone 17 Pro"
+  sim: "platform=iOS Simulator,name=${IOS_SIMULATOR:-iPhone 17 Pro}"
   sim-ipad: "platform=iOS Simulator,name=iPad Pro 13-inch (M5)"
   mac: "platform=macOS"
 
@@ -35,7 +35,7 @@ commands:
     variants:
       core:
         scheme: Core
-      all:
+      coverage:
         extra-args:
           - "-enableCodeCoverage"
           - "YES"
@@ -44,7 +44,22 @@ commands:
 
   archive:
     configuration: Release
-    archive-path: "./build/SampleApp.xcarchive"
+    archive-path: "${BUILD_DIR:-./build}/SampleApp.xcarchive"
     hooks:
       pre: "echo '==> Archiving SampleApp...'"
       post: "echo '==> Archive complete.'"
+
+  # Script commands — run arbitrary shell commands
+  generate:
+    run: "tuist generate"
+    hooks:
+      pre: "echo '==> Generating project...'"
+
+  lint:
+    run: "swiftlint lint --quiet"
+    variants:
+      fix:
+        run: "swiftlint lint --fix"
+
+  loc:
+    run: "find Sources -name '*.swift' | xargs wc -l | tail -1"
