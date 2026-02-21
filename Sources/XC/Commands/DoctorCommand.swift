@@ -16,7 +16,11 @@ struct DoctorCommand: ParsableCommand {
             (projectConfig, projectRoot) = try ConfigLoader.loadProjectConfig()
             printCheck("xc.yaml", status: .ok)
         } catch {
-            printCheck("xc.yaml", status: .fail, detail: "Not found. Run 'xc init' to generate one.")
+            if case XCError.configNotFound = error {
+                printCheck("xc.yaml", status: .fail, detail: "Not found. Run 'xc init' to generate one.")
+            } else {
+                printCheck("xc.yaml", status: .fail, detail: "Parse error: \(error.localizedDescription)")
+            }
             return
         }
 
