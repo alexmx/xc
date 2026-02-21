@@ -16,6 +16,9 @@ struct RunCommand: AsyncParsableCommand {
     @Flag(name: .shortAndLong, help: "Show the resolved xcodebuild invocation")
     var verbose: Bool = false
 
+    @Flag(name: .long, help: "Print the resolved command without executing it")
+    var dryRun: Bool = false
+
     @Option(name: .long, help: "Override destination (name or raw destination string)")
     var dest: String?
 
@@ -34,6 +37,14 @@ struct RunCommand: AsyncParsableCommand {
             destOverride: dest,
             extraArgs: passthroughArgs
         )
+
+        if dryRun {
+            let shellSafe = resolved.invocation.map { arg in
+                arg.contains(" ") ? "\"\(arg)\"" : arg
+            }.joined(separator: " ")
+            print(shellSafe)
+            return
+        }
 
         let projectRoot = config.projectRoot
 
