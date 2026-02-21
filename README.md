@@ -46,6 +46,12 @@ Built for fast, repeatable Xcode workflows.
 brew install alexmx/tools/xc
 ```
 
+To update:
+
+```bash
+brew upgrade alexmx/tools/xc
+```
+
 ## Quick Start
 
 ```bash
