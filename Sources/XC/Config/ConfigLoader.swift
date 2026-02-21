@@ -40,8 +40,12 @@ enum ConfigLoader {
         let path = configDir + "/xc.yaml"
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let yaml = String(data: data, encoding: .utf8) ?? ""
-        let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
-        return (config.expandingEnvVars(), configDir)
+        do {
+            let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
+            return (config.expandingEnvVars(), configDir)
+        } catch {
+            throw XCError.invalidConfig(Self.describeYAMLError(error))
+        }
     }
 
     /// Walk up from `directory` looking for xc.yaml. Returns the directory containing it, or nil.
@@ -60,6 +64,37 @@ enum ConfigLoader {
         }
     }
 
+    /// Extract a user-friendly description from YAML parsing or decoding errors.
+    static func describeYAMLError(_ error: Error) -> String {
+        // Yams throws YamlError directly for syntax issues
+        if let yamlError = error as? YamlError {
+            return String(describing: yamlError)
+        }
+
+        // YAMLDecoder wraps YamlError in DecodingError.dataCorrupted
+        if case DecodingError.dataCorrupted(let context) = error,
+           let underlying = context.underlyingError as? YamlError {
+            return String(describing: underlying)
+        }
+
+        // DecodingError.typeMismatch — wrong type for a key
+        if case DecodingError.typeMismatch(_, let context) = error {
+            let path = context.codingPath.map(\.stringValue).joined(separator: ".")
+            return path.isEmpty
+                ? context.debugDescription
+                : "\(path): \(context.debugDescription)"
+        }
+
+        // DecodingError.keyNotFound
+        if case DecodingError.keyNotFound(let key, let context) = error {
+            let path = context.codingPath.map(\.stringValue).joined(separator: ".")
+            let location = path.isEmpty ? "" : " in \(path)"
+            return "Missing required key '\(key.stringValue)'\(location)"
+        }
+
+        return error.localizedDescription
+    }
+
     static func loadGlobalConfig() throws -> GlobalConfig? {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let path = home.appendingPathComponent(".config/xc/config.yaml").path
@@ -68,6 +103,10 @@ enum ConfigLoader {
         }
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let yaml = String(data: data, encoding: .utf8) ?? ""
-        return try YAMLDecoder().decode(GlobalConfig.self, from: yaml)
+        do {
+            return try YAMLDecoder().decode(GlobalConfig.self, from: yaml)
+        } catch {
+            throw XCError.invalidConfig("Global config: \(describeYAMLError(error))")
+        }
     }
 }

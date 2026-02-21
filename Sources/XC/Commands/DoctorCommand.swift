@@ -18,8 +18,10 @@ struct DoctorCommand: ParsableCommand {
         } catch {
             if case XCError.configNotFound = error {
                 printCheck("xc.yaml", status: .fail, detail: "Not found. Run 'xc init' to generate one.")
+            } else if case XCError.invalidConfig(let reason) = error {
+                printCheck("xc.yaml", status: .fail, detail: reason)
             } else {
-                printCheck("xc.yaml", status: .fail, detail: "Parse error: \(error.localizedDescription)")
+                printCheck("xc.yaml", status: .fail, detail: error.localizedDescription)
             }
             return
         }
