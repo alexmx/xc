@@ -1,5 +1,5 @@
 struct GlobalConfig: Codable, Sendable {
-    var defaults: CommandSettings?
+    var defaults: CommandConfig?
     var settings: GlobalSettings?
 }
 

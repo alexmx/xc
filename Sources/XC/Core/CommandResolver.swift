@@ -12,12 +12,13 @@ enum CommandResolver {
         destOverride: String?,
         extraArgs: [String]
     ) throws -> ResolvedCommand {
-        guard let commandConfig = config.project.commands?[commandName] else {
-            throw XCError.unknownCommand(commandName)
+        let commands = config.project.commands ?? [:]
+        guard let commandConfig = commands[commandName] else {
+            throw XCError.unknownCommand(commandName, available: Array(commands.keys))
         }
 
         if let variant, commandConfig.variants?[variant] == nil {
-            throw XCError.unknownVariant(commandName, variant)
+            throw XCError.unknownVariant(commandName, variant, available: Array((commandConfig.variants ?? [:]).keys))
         }
         let variantConfig = variant.flatMap { commandConfig.variants?[$0] }
 

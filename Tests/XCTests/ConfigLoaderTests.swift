@@ -165,4 +165,47 @@ struct ConfigLoaderTests {
         #expect(buildCmd.variants?["release"]?.hooks?.pre == "release-pre")
         #expect(buildCmd.variants?["release"]?.hooks?.post == "release-post")
     }
+
+    // MARK: - Validation
+
+    @Test("validate rejects both project and workspace")
+    func validateProjectAndWorkspace() {
+        let config = ProjectConfig(
+            project: "App.xcodeproj",
+            workspace: "App.xcworkspace",
+            commands: ["build": CommandConfig()]
+        )
+
+        #expect(throws: XCError.self) {
+            try ConfigLoader.validate(config)
+        }
+    }
+
+    @Test("validate rejects missing commands")
+    func validateNoCommands() {
+        let config = ProjectConfig()
+
+        #expect(throws: XCError.self) {
+            try ConfigLoader.validate(config)
+        }
+    }
+
+    @Test("validate rejects empty commands")
+    func validateEmptyCommands() {
+        let config = ProjectConfig(commands: [:])
+
+        #expect(throws: XCError.self) {
+            try ConfigLoader.validate(config)
+        }
+    }
+
+    @Test("validate accepts valid config")
+    func validateValidConfig() throws {
+        let config = ProjectConfig(
+            project: "App.xcodeproj",
+            commands: ["build": CommandConfig()]
+        )
+
+        try ConfigLoader.validate(config)
+    }
 }

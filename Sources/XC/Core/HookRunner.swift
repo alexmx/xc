@@ -1,7 +1,7 @@
 import Foundation
 
 enum HookRunner {
-    static func run(_ command: String, label: String) async throws {
+    static func run(_ command: String, label: String) throws {
         print("→ Running \(label) hook...")
 
         let process = Process()

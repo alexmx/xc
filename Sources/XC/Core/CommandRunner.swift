@@ -1,7 +1,7 @@
 import Foundation
 
 enum CommandRunner {
-    static func exec(args: [String], useFormatter: Bool) async throws {
+    static func exec(args: [String], useFormatter: Bool) throws {
         let xcodebuild = Process()
         xcodebuild.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         xcodebuild.arguments = args
@@ -18,7 +18,13 @@ enum CommandRunner {
             formatter.standardError = FileHandle.standardError
 
             try xcodebuild.run()
-            try formatter.run()
+            do {
+                try formatter.run()
+            } catch {
+                xcodebuild.terminate()
+                xcodebuild.waitUntilExit()
+                throw error
+            }
 
             xcodebuild.waitUntilExit()
             pipe.fileHandleForWriting.closeFile()

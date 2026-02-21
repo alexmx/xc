@@ -14,7 +14,7 @@ struct CommandResolverTests {
                 "device": "platform:iOS,name:My iPhone",
                 "mac": "platform:macOS",
             ],
-            defaults: CommandSettings(
+            defaults: CommandConfig(
                 scheme: "MyApp",
                 configuration: "Debug",
                 destination: "sim"
@@ -23,7 +23,7 @@ struct CommandResolverTests {
                 "build": CommandConfig(
                     hooks: HookConfig(pre: "swiftlint lint", post: "echo done"),
                     variants: [
-                        "release": CommandSettings(
+                        "release": CommandConfig(
                             configuration: "Release",
                             destination: "device"
                         )
@@ -39,7 +39,7 @@ struct CommandResolverTests {
                     configuration: "Release",
                     archivePath: "./build/MyApp.xcarchive",
                     variants: [
-                        "staging": CommandSettings(
+                        "staging": CommandConfig(
                             extraArgs: ["STAGING=1"]
                         )
                     ]
@@ -47,7 +47,7 @@ struct CommandResolverTests {
             ]
         ),
         global: GlobalConfig(
-            defaults: CommandSettings(scheme: "GlobalDefault"),
+            defaults: CommandConfig(scheme: "GlobalDefault"),
             settings: GlobalSettings(formatter: "xcbeautify")
         )
     )
@@ -271,7 +271,7 @@ struct CommandResolverTests {
                     "build": CommandConfig(
                         hooks: HookConfig(pre: "base-hook"),
                         variants: [
-                            "release": CommandSettings(
+                            "release": CommandConfig(
                                 hooks: HookConfig(pre: "variant-hook")
                             ),
                         ]
@@ -389,7 +389,7 @@ struct CommandResolverTests {
                 commands: ["build": CommandConfig()]
             ),
             global: GlobalConfig(
-                defaults: CommandSettings(scheme: "GlobalScheme", configuration: "GlobalConfig")
+                defaults: CommandConfig(scheme: "GlobalScheme", configuration: "GlobalConfig")
             )
         )
 

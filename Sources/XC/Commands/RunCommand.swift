@@ -36,19 +36,22 @@ struct RunCommand: AsyncParsableCommand {
         )
 
         if let preHook = resolved.hooks?.pre {
-            try await HookRunner.run(preHook, label: "pre-\(commandName)")
+            try HookRunner.run(preHook, label: "pre-\(commandName)")
         }
 
         if verbose {
-            print("$ \(resolved.invocation.joined(separator: " "))")
+            let shellSafe = resolved.invocation.map { arg in
+                arg.contains(" ") ? "\"\(arg)\"" : arg
+            }.joined(separator: " ")
+            print("$ \(shellSafe)")
             fflush(stdout)
         }
 
         let useFormatter = !raw && resolved.formatter != "raw"
-        try await CommandRunner.exec(args: resolved.invocation, useFormatter: useFormatter)
+        try CommandRunner.exec(args: resolved.invocation, useFormatter: useFormatter)
 
         if let postHook = resolved.hooks?.post {
-            try await HookRunner.run(postHook, label: "post-\(commandName)")
+            try HookRunner.run(postHook, label: "post-\(commandName)")
         }
     }
 
