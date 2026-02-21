@@ -26,15 +26,13 @@ xc build:release
 
 ## Why xc?
 
-| Capability | Description |
-|---|---|
-| One file, all your build commands | `xc.yaml` lives in your repo. Everyone on the team runs the same thing. |
-| Variants, not flags | `build:release`, `test:coverage`, `archive:staging`; switch configurations in two words. |
-| Named destinations | `sim`, `mac`, `device` instead of `platform=iOS Simulator,name=iPhone 17 Pro`. |
-| Script commands | Run `swiftlint`, `tuist generate`, or anything else alongside your builds. |
-| Environment variables | `${CI_SIMULATOR:-iPhone 17 Pro}`; same config, every machine. |
-| Pre/post hooks | Lint before building, notify after archiving. |
-| xcbeautify built in | Pretty output by default, `--raw` when you need it. |
+- **One file, all your build commands** - `xc.yaml` lives in your repo. Everyone on the team runs the same thing.
+- **Variants, not flags** - `build:release`, `test:coverage`, `archive:staging`; switch configurations in two words.
+- **Named destinations** - `sim`, `mac`, `device` instead of `platform=iOS Simulator,name=iPhone 17 Pro`.
+- **Script commands** - Run `swiftlint`, `tuist generate`, or anything else alongside your builds.
+- **Environment variables** - `${CI_SIMULATOR:-iPhone 17 Pro}`; same config, every machine.
+- **Pre/post hooks** - Lint before building, notify after archiving.
+- **xcbeautify built in** - Pretty output by default, `--raw` when you need it.
 
 ---
 
