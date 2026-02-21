@@ -43,8 +43,7 @@ Built for fast, repeatable Xcode workflows.
 ### Homebrew
 
 ```bash
-brew tap alexmx/tools
-brew install xc
+brew install alexmx/tools/xc
 ```
 
 ## Quick Start
