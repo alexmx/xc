@@ -1,38 +1,33 @@
 # xc configuration for SampleMacApp
-# Generated workspace: SampleMacApp.xcworkspace (via tuist generate)
 
-workspace: SampleMacApp.xcworkspace
+project: SampleMacApp.xcodeproj
 
-# Named destinations
 destinations:
   mac: "platform=macOS"
-  mac-arch: "platform=macOS,arch=arm64"
+  rosetta: "platform=macOS,arch=x86_64"
 
-# Defaults applied to all commands
 defaults:
   scheme: SampleMacApp
   configuration: Debug
   destination: mac
 
-# Command definitions
 commands:
   build:
-    hooks:
-      pre: "echo '==> Building SampleMacApp...'"
-      post: "echo '==> Build finished.'"
     variants:
       release:
         configuration: Release
+      rosetta:
+        destination: rosetta
       core:
         scheme: Core
 
   test:
-    hooks:
-      pre: "echo '==> Running tests...'"
+    scheme: SampleMacAppTests
     variants:
       core:
-        scheme: Core
-      coverage:
+        scheme: CoreTests
+      ci:
+        result-bundle-path: "${RESULT_BUNDLE_PATH:-./build/tests.xcresult}"
         extra-args:
           - "-enableCodeCoverage"
           - "YES"
@@ -43,15 +38,8 @@ commands:
     configuration: Release
     archive-path: "${BUILD_DIR:-./build}/SampleMacApp.xcarchive"
 
-  # Script commands
-  generate:
-    run: "tuist generate"
-
   lint:
     run: "swiftlint lint --quiet"
     variants:
       fix:
         run: "swiftlint lint --fix"
-
-  loc:
-    run: "find Sources -name '*.swift' | xargs wc -l | tail -1"

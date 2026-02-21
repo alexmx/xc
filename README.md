@@ -72,7 +72,7 @@ xc doctor          # verify everything is set up correctly
 workspace: App.xcworkspace
 
 destinations:
-  sim: "platform=iOS Simulator,name=iPhone 17 Pro"
+  sim: "platform=iOS Simulator,name=${IOS_SIMULATOR:-iPhone 17 Pro}"
   mac: "platform=macOS"
 
 defaults:
@@ -83,14 +83,16 @@ defaults:
 commands:
   build:
     hooks:
-      pre: "swiftlint lint"
+      pre: "tuist generate"
     variants:
       release:
         configuration: Release
 
   test:
+    scheme: AppTests
     variants:
-      coverage:
+      ci:
+        result-bundle-path: "./build/tests.xcresult"
         extra-args:
           - "-enableCodeCoverage"
           - "YES"
@@ -108,14 +110,14 @@ commands:
         run: "swiftlint lint --fix"
 ```
 
-That config gives you all of this:
+That config gives you:
 
 ```bash
-xc build              # debug build
+xc build              # debug build (runs tuist generate first)
 xc build:release      # release build
 xc test               # run tests
-xc test:coverage      # tests with code coverage
-xc archive            # create archive
+xc test:ci            # tests with coverage + result bundle
+xc archive            # create release archive
 xc clean              # clean build
 xc lint               # run swiftlint
 xc lint:fix           # autofix lint issues
@@ -328,8 +330,8 @@ build
 clean
 lint      run: swiftlint lint --quiet
   :fix       run: swiftlint lint --fix
-test
-  :coverage  extra-args: -enableCodeCoverage YES
+test      scheme: AppTests
+  :ci        result-bundle-path: ./build/tests.xcresult, extra-args: -enableCodeCoverage YES
 ```
 
 ## License
