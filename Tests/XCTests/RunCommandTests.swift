@@ -44,6 +44,30 @@ struct RunCommandTests {
         #expect(command == "build-for-testing")
         #expect(variant == "ci")
     }
+
+    @Test("shellEscape with simple args")
+    func shellEscapeSimple() {
+        let result = RunCommand.shellEscape(["xcodebuild", "build"])
+        #expect(result == "xcodebuild build")
+    }
+
+    @Test("shellEscape quotes args with spaces")
+    func shellEscapeSpaces() {
+        let result = RunCommand.shellEscape(["-destination", "platform=iOS Simulator,name=iPhone 17 Pro"])
+        #expect(result == "-destination \"platform=iOS Simulator,name=iPhone 17 Pro\"")
+    }
+
+    @Test("shellEscape with empty array")
+    func shellEscapeEmpty() {
+        let result = RunCommand.shellEscape([])
+        #expect(result == "")
+    }
+
+    @Test("shellEscape with mixed args")
+    func shellEscapeMixed() {
+        let result = RunCommand.shellEscape(["xcodebuild", "build", "-scheme", "My App"])
+        #expect(result == "xcodebuild build -scheme \"My App\"")
+    }
 }
 
 @Suite("DestinationsCommand Tests")

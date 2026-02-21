@@ -69,4 +69,43 @@ struct ListCommandTests {
         let result = ListCommand.summarizeVariant(variant)
         #expect(result == "$ swiftlint lint --fix")
     }
+
+    @Test("summarizeVariant with xcconfig")
+    func summarizeXcconfig() {
+        let variant = CommandConfig(xcconfig: "Release.xcconfig")
+        let result = ListCommand.summarizeVariant(variant)
+        #expect(result == "xcconfig: Release.xcconfig")
+    }
+
+    @Test("summarizeVariant with derived-data-path")
+    func summarizeDerivedDataPath() {
+        let variant = CommandConfig(derivedDataPath: "./DerivedData")
+        let result = ListCommand.summarizeVariant(variant)
+        #expect(result == "derived-data-path: ./DerivedData")
+    }
+
+    @Test("summarizeVariant with result-bundle-path")
+    func summarizeResultBundlePath() {
+        let variant = CommandConfig(resultBundlePath: "./build/tests.xcresult")
+        let result = ListCommand.summarizeVariant(variant)
+        #expect(result == "result-bundle-path: ./build/tests.xcresult")
+    }
+
+    @Test("summarizeParts returns empty array for empty config")
+    func summarizePartsEmpty() {
+        let config = CommandConfig()
+        let parts = ListCommand.summarizeParts(config)
+        #expect(parts.isEmpty)
+    }
+
+    @Test("summarizeParts returns array of formatted parts")
+    func summarizePartsMultiple() {
+        let config = CommandConfig(
+            scheme: "App",
+            configuration: "Release",
+            destination: "sim"
+        )
+        let parts = ListCommand.summarizeParts(config)
+        #expect(parts == ["scheme: App", "configuration: Release", "destination: sim"])
+    }
 }

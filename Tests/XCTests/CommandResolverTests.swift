@@ -805,6 +805,50 @@ struct CommandResolverTests {
         #expect(resolved.formatter == "xcbeautify")
     }
 
+    @Test("project formatter overrides global formatter")
+    func formatterProjectOverridesGlobal() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: ["build": CommandConfig()],
+                settings: GlobalSettings(formatter: "xcbeautify --disable-logging")
+            ),
+            global: GlobalConfig(
+                settings: GlobalSettings(formatter: "xcbeautify")
+            )
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "build",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.formatter == "xcbeautify --disable-logging")
+    }
+
+    @Test("project formatter used when no global config")
+    func formatterProjectOnly() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: ["build": CommandConfig()],
+                settings: GlobalSettings(formatter: "xcpretty")
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "build",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.formatter == "xcpretty")
+    }
+
     // MARK: - Minimal Config
 
     @Test("minimal config with only command scheme")
