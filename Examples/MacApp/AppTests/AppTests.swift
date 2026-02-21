@@ -4,6 +4,6 @@ import XCTest
 
 final class AppTests: XCTestCase {
     func testGreeting() {
-        XCTAssertEqual("Hello from Core!", Greeting.hello())
+        XCTAssertEqual("Hello from Core (macOS)!", Greeting.hello())
     }
 }

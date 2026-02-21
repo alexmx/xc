@@ -1,0 +1,40 @@
+# xc configuration for SampleMacApp
+# Generated workspace: SampleMacApp.xcworkspace (via tuist generate)
+
+workspace: SampleMacApp.xcworkspace
+
+# Named destinations
+destinations:
+  mac: "platform=macOS"
+  mac-arch: "platform=macOS,arch=arm64"
+
+# Defaults applied to all commands
+defaults:
+  scheme: SampleMacApp
+  configuration: Debug
+  destination: mac
+
+# Command definitions
+commands:
+  build:
+    hooks:
+      pre: "echo '==> Building SampleMacApp...'"
+      post: "echo '==> Build finished.'"
+    variants:
+      release:
+        configuration: Release
+      core:
+        scheme: Core
+
+  test:
+    hooks:
+      pre: "echo '==> Running tests...'"
+    variants:
+      core:
+        scheme: Core
+
+  clean: {}
+
+  archive:
+    configuration: Release
+    archive-path: "./build/SampleMacApp.xcarchive"
