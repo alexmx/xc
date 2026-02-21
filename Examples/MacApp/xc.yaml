@@ -1,6 +1,6 @@
 # xc configuration for SampleMacApp
 
-project: SampleMacApp.xcodeproj
+workspace: SampleMacApp.xcworkspace
 
 destinations:
   mac: "platform=macOS"
@@ -13,6 +13,8 @@ defaults:
 
 commands:
   build:
+    hooks:
+      pre: "tuist generate --no-open"
     variants:
       release:
         configuration: Release
@@ -43,3 +45,6 @@ commands:
     variants:
       fix:
         run: "swiftlint lint --fix"
+
+settings:
+  formatter: "xcbeautify --disable-logging"

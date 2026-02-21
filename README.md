@@ -6,50 +6,45 @@
 xc build
 xc test
 xc build:release
+xc archive
 ```
 
 That's it. No more copying 200-character xcodebuild invocations from your wiki. Define your commands once in `xc.yaml`, use them forever.
 
-```diff
-- xcodebuild build \
--   -workspace App.xcworkspace \
--   -scheme App \
--   -configuration Release \
--   -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
--   -derivedDataPath ./DerivedData
+```bash
+# Before
+xcodebuild build \
+  -workspace App.xcworkspace \
+  -scheme App \
+  -configuration Release \
+  -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
+  -derivedDataPath ./DerivedData
 
-+ xc build:release
+# After
+xc build:release
 ```
+
+## Why xc?
+
+| Capability | Description |
+|---|---|
+| One file, all your build commands | `xc.yaml` lives in your repo. Everyone on the team runs the same thing. |
+| Variants, not flags | `build:release`, `test:coverage`, `archive:staging`; switch configurations in two words. |
+| Named destinations | `sim`, `mac`, `device` instead of `platform=iOS Simulator,name=iPhone 17 Pro`. |
+| Script commands | Run `swiftlint`, `tuist generate`, or anything else alongside your builds. |
+| Environment variables | `${CI_SIMULATOR:-iPhone 17 Pro}`; same config, every machine. |
+| Pre/post hooks | Lint before building, notify after archiving. |
+| xcbeautify built in | Pretty output by default, `--raw` when you need it. |
 
 ---
 
-### Why xc?
+## Installation
 
-- **One file, all your build commands.** `xc.yaml` lives in your repo. Everyone on the team runs the same thing.
-- **Variants, not flags.** `build:release`, `test:coverage`, `archive:staging` - switch configurations in two words.
-- **Named destinations.** `sim`, `mac`, `device` instead of `platform=iOS Simulator,name=iPhone 17 Pro`.
-- **Script commands.** Run `swiftlint`, `tuist generate`, or anything else alongside your builds.
-- **Environment variables.** `${CI_SIMULATOR:-iPhone 17 Pro}` - same config, every machine.
-- **Pre/post hooks.** Lint before building, notify after archiving.
-- **xcbeautify built in.** Pretty output by default, `--raw` when you need it.
-
----
-
-## Install
+### Homebrew
 
 ```bash
-git clone https://github.com/alexmx/xc.git
-cd xc
-swift build -c release
-cp .build/release/xc /usr/local/bin/xc
-```
-
-Requires Swift 6.2+ and macOS 15+.
-
-**Optional:** Install [xcbeautify](https://github.com/cpisciotta/xcbeautify) for formatted output:
-
-```bash
-brew install xcbeautify
+brew tap alexmx/tools
+brew install xc
 ```
 
 ## Quick Start
@@ -253,8 +248,12 @@ commands:
     variants:
       release:
         hooks:
-          pre: "swiftlint lint --strict"
+          pre: "swiftlint lint --strict"   # overrides the command hooks
+      quick:
+        hooks: {}                          # disables hooks for this variant
 ```
+
+Hooks defined on a command run for all its variants. A variant can override hooks or disable them entirely with `hooks: {}`.
 
 ### Resolution Order
 
@@ -278,6 +277,18 @@ settings:
   formatter: xcbeautify
   verbose: false
 ```
+
+The `formatter` setting controls how xcodebuild output is processed. Any value is run as a shell command with xcodebuild output piped into it:
+
+```yaml
+settings:
+  formatter: xcbeautify                              # default — auto-detected from PATH
+  formatter: "xcbeautify --disable-logging"           # custom flags
+  formatter: xcpretty                                # different tool
+  formatter: raw                                     # no formatting
+```
+
+Use `--raw` on any command to skip formatting for a single invocation.
 
 ### Config Reference
 
@@ -324,14 +335,16 @@ $ xc doctor
 
 ```
 $ xc list
-archive   configuration: Release, archive-path: ./build/App.xcarchive
-build
-  :release   configuration: Release
-clean
-lint      run: swiftlint lint --quiet
-  :fix       run: swiftlint lint --fix
-test      scheme: AppTests
-  :ci        result-bundle-path: ./build/tests.xcresult, extra-args: -enableCodeCoverage YES
+  defaults     scheme: App, configuration: Debug, destination: sim
+
+  archive      configuration: Release, archive-path: ./build/App.xcarchive
+  build
+    :release   configuration: Release
+  clean
+  lint         $ swiftlint lint --quiet
+    :fix       $ swiftlint lint --fix
+  test         scheme: AppTests
+    :ci        result-bundle-path: ./build/tests.xcresult, extra-args: -enableCodeCoverage YES
 ```
 
 ## License

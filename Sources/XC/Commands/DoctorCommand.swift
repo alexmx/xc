@@ -97,7 +97,7 @@ struct DoctorCommand: ParsableCommand {
         }
 
         // 6. Check xcbeautify
-        if CommandRunner.findXcbeautify() != nil {
+        if CommandRunner.findInPath("xcbeautify") != nil {
             printCheck("xcbeautify", status: .ok)
         } else {
             printCheck(

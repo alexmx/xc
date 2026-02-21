@@ -74,8 +74,8 @@ struct RunCommand: AsyncParsableCommand {
         if let script = resolved.script {
             try HookRunner.run(script, label: commandName, workingDirectory: projectRoot, quiet: true)
         } else {
-            let useFormatter = !raw && resolved.formatter != "raw"
-            try CommandRunner.exec(args: resolved.invocation, useFormatter: useFormatter, workingDirectory: projectRoot)
+            let formatter = raw ? nil : resolved.formatter
+            try CommandRunner.exec(args: resolved.invocation, formatter: formatter, workingDirectory: projectRoot)
         }
 
         // Post-hook

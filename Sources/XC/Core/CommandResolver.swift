@@ -24,7 +24,8 @@ enum CommandResolver {
         let variantConfig = variant.flatMap { commandConfig.variants?[$0] }
 
         let hooks = variantConfig?.hooks ?? commandConfig.hooks
-        let formatter = config.global?.settings?.formatter
+        let formatter = config.project.settings?.formatter
+            ?? config.global?.settings?.formatter
 
         // Check if this is a script command
         let script = variantConfig?.run ?? commandConfig.run

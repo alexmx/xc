@@ -19,21 +19,43 @@ struct ListCommand: ParsableCommand {
             return
         }
 
+        // Calculate column width so summaries align across commands, variants, and defaults
+        var prefixWidths: [Int] = [2 + "defaults".count] // "  defaults"
+        for (name, command) in commands {
+            prefixWidths.append(2 + name.count) // "  name"
+            for variantName in (command.variants ?? [:]).keys {
+                prefixWidths.append(4 + 1 + variantName.count) // "    :variant"
+            }
+        }
+        let columnWidth = (prefixWidths.max() ?? 0) + 2
+
+        // Show defaults if defined
+        if let defaults = config.project.defaults {
+            let summary = summarizeVariant(defaults)
+            if !summary.isEmpty {
+                let prefix = "  defaults".padding(toLength: columnWidth, withPad: " ", startingAt: 0)
+                print("\(prefix) \(summary)")
+                print()
+            }
+        }
+
         for (name, command) in commands.sorted(by: { $0.key < $1.key }) {
             let summary = summarizeCommand(command)
+            let prefix = "  \(name)".padding(toLength: columnWidth, withPad: " ", startingAt: 0)
             if summary.isEmpty {
-                print(name)
+                print(prefix)
             } else {
-                print("\(name)\t\(summary)")
+                print("\(prefix) \(summary)")
             }
 
             let variants = command.variants ?? [:]
             for (variantName, variant) in variants.sorted(by: { $0.key < $1.key }) {
                 let variantSummary = summarizeVariant(variant)
+                let variantPrefix = "    :\(variantName)".padding(toLength: columnWidth, withPad: " ", startingAt: 0)
                 if variantSummary.isEmpty {
-                    print("  :\(variantName)")
+                    print(variantPrefix)
                 } else {
-                    print("  :\(variantName)\t\(variantSummary)")
+                    print("\(variantPrefix) \(variantSummary)")
                 }
             }
         }
@@ -41,44 +63,45 @@ struct ListCommand: ParsableCommand {
 
     static func summarizeCommand(_ command: CommandConfig) -> String {
         if let run = command.run {
-            return "run: \(run)"
+            return "$ \(run)"
         }
         return summarizeVariant(command)
     }
 
     static func summarizeVariant(_ variant: CommandConfig) -> String {
-        var parts: [String] = []
-
         if let run = variant.run {
-            parts.append("run: \(run)")
-            return parts.joined(separator: ", ")
+            return "$ \(run)"
         }
-        if let scheme = variant.scheme {
+        return summarizeParts(variant).joined(separator: ", ")
+    }
+
+    static func summarizeParts(_ config: CommandConfig) -> [String] {
+        var parts: [String] = []
+        if let scheme = config.scheme {
             parts.append("scheme: \(scheme)")
         }
-        if let config = variant.configuration {
-            parts.append("configuration: \(config)")
+        if let configuration = config.configuration {
+            parts.append("configuration: \(configuration)")
         }
-        if let dest = variant.destination {
+        if let dest = config.destination {
             let display = dest.values.joined(separator: ", ")
             parts.append("destination: \(display)")
         }
-        if let testPlan = variant.testPlan {
+        if let testPlan = config.testPlan {
             parts.append("test-plan: \(testPlan)")
         }
-        if let rbp = variant.resultBundlePath {
+        if let rbp = config.resultBundlePath {
             parts.append("result-bundle-path: \(rbp)")
         }
-        if let xcconfig = variant.xcconfig {
+        if let xcconfig = config.xcconfig {
             parts.append("xcconfig: \(xcconfig)")
         }
-        if let ddp = variant.derivedDataPath {
+        if let ddp = config.derivedDataPath {
             parts.append("derived-data-path: \(ddp)")
         }
-        if let args = variant.extraArgs, !args.isEmpty {
+        if let args = config.extraArgs, !args.isEmpty {
             parts.append("extra-args: \(args.joined(separator: " "))")
         }
-
-        return parts.joined(separator: ", ")
+        return parts
     }
 }

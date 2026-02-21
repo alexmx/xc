@@ -70,7 +70,8 @@ extension ProjectConfig {
             workspace: workspace?.envExpanded,
             destinations: destinations?.mapValues { $0.envExpanded },
             defaults: defaults?.expandingEnvVars(),
-            commands: commands?.mapValues { $0.expandingEnvVars() }
+            commands: commands?.mapValues { $0.expandingEnvVars() },
+            settings: settings
         )
     }
 }

@@ -8,9 +8,7 @@ let project = Project(
             destinations: [.mac],
             product: .app,
             bundleId: "dev.xc.sample-mac-app",
-            infoPlist: .extendingDefault(with: [
-                "LSMinimumSystemVersion": "14.0"
-            ]),
+            infoPlist: .default,
             sources: "App/Sources/**",
             dependencies: [
                 .target(name: "Core")

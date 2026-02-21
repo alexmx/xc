@@ -16,7 +16,7 @@ defaults:
 commands:
   build:
     hooks:
-      pre: "tuist generate"
+      pre: "tuist generate --no-open"
     variants:
       release:
         configuration: Release

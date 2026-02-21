@@ -60,13 +60,13 @@ struct ListCommandTests {
     func summarizeScriptCommand() {
         let command = CommandConfig(run: "swiftlint lint --strict")
         let result = ListCommand.summarizeCommand(command)
-        #expect(result == "run: swiftlint lint --strict")
+        #expect(result == "$ swiftlint lint --strict")
     }
 
     @Test("summarizeVariant shows run for script variant")
     func summarizeScriptVariant() {
         let variant = CommandConfig(run: "swiftlint lint --fix")
         let result = ListCommand.summarizeVariant(variant)
-        #expect(result == "run: swiftlint lint --fix")
+        #expect(result == "$ swiftlint lint --fix")
     }
 }

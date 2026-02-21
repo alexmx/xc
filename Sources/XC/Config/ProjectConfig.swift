@@ -43,6 +43,7 @@ struct ProjectConfig: Codable, Sendable {
     var destinations: [String: String]?
     var defaults: CommandConfig?
     var commands: [String: CommandConfig]?
+    var settings: GlobalSettings?
 }
 
 struct CommandConfig: Codable, Sendable {
