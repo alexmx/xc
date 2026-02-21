@@ -82,6 +82,7 @@ extension CommandConfig {
             destination: destination?.expandingEnvVars(),
             testPlan: testPlan?.envExpanded,
             resultBundlePath: resultBundlePath?.envExpanded,
+            xcconfig: xcconfig?.envExpanded,
             derivedDataPath: derivedDataPath?.envExpanded,
             archivePath: archivePath?.envExpanded,
             extraArgs: extraArgs?.map { $0.envExpanded },

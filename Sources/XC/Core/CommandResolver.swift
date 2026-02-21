@@ -65,6 +65,11 @@ enum CommandResolver {
             ?? config.project.defaults?.resultBundlePath
             ?? config.global?.defaults?.resultBundlePath
 
+        let xcconfig = variantConfig?.xcconfig
+            ?? commandConfig.xcconfig
+            ?? config.project.defaults?.xcconfig
+            ?? config.global?.defaults?.xcconfig
+
         let derivedDataPath = variantConfig?.derivedDataPath
             ?? commandConfig.derivedDataPath
             ?? config.project.defaults?.derivedDataPath
@@ -89,6 +94,7 @@ enum CommandResolver {
             args += ["-workspace", workspace]
         }
 
+        if let xcconfig { args += ["-xcconfig", xcconfig] }
         if let scheme { args += ["-scheme", scheme] }
         if let configuration { args += ["-configuration", configuration] }
         for dest in resolvedDests {

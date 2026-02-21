@@ -156,6 +156,86 @@ struct CommandResolverTests {
         #expect(resolved.invocation.contains("./build/MyApp.xcarchive"))
     }
 
+    // MARK: - xcconfig
+
+    @Test("resolve build with xcconfig")
+    func resolveXcconfig() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "build": CommandConfig(xcconfig: "Config/Release.xcconfig"),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "build",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.invocation.contains("-xcconfig"))
+        #expect(resolved.invocation.contains("Config/Release.xcconfig"))
+    }
+
+    @Test("xcconfig variant overrides command")
+    func xcconfigVariantOverride() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "build": CommandConfig(
+                        xcconfig: "Config/Debug.xcconfig",
+                        variants: [
+                            "release": CommandConfig(xcconfig: "Config/Release.xcconfig")
+                        ]
+                    ),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "build",
+            variant: "release",
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        #expect(resolved.invocation.contains("Config/Release.xcconfig"))
+        #expect(!resolved.invocation.contains("Config/Debug.xcconfig"))
+    }
+
+    @Test("xcconfig placed before scheme in invocation")
+    func xcconfigBeforeScheme() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: [
+                    "build": CommandConfig(
+                        scheme: "MyApp",
+                        xcconfig: "Config/Debug.xcconfig"
+                    ),
+                ]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "build",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: []
+        )
+
+        let xcconfigIdx = resolved.invocation.firstIndex(of: "-xcconfig")!
+        let schemeIdx = resolved.invocation.firstIndex(of: "-scheme")!
+        #expect(xcconfigIdx < schemeIdx)
+    }
+
     @Test("archivePath only added for archive action")
     func archivePathOnlyForArchive() throws {
         // build should not include archivePath even if configured

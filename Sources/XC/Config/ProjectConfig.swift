@@ -52,6 +52,7 @@ struct CommandConfig: Codable, Sendable {
     var destination: OneOrMany?
     var testPlan: String?
     var resultBundlePath: String?
+    var xcconfig: String?
     var derivedDataPath: String?
     var archivePath: String?
     var extraArgs: [String]?
@@ -62,6 +63,7 @@ struct CommandConfig: Codable, Sendable {
         case run, scheme, configuration, destination
         case testPlan = "test-plan"
         case resultBundlePath = "result-bundle-path"
+        case xcconfig
         case derivedDataPath = "derived-data-path"
         case archivePath = "archive-path"
         case extraArgs = "extra-args"

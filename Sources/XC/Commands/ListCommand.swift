@@ -60,6 +60,9 @@ struct ListCommand: ParsableCommand {
         if let rbp = variant.resultBundlePath {
             parts.append("result-bundle-path: \(rbp)")
         }
+        if let xcconfig = variant.xcconfig {
+            parts.append("xcconfig: \(xcconfig)")
+        }
         if let ddp = variant.derivedDataPath {
             parts.append("derived-data-path: \(ddp)")
         }
