@@ -8,7 +8,7 @@ struct RunCommand: AsyncParsableCommand {
     )
 
     @Argument(help: "Command to run, optionally with variant (e.g. build, test, build:release)")
-    var command: String
+    var command: String?
 
     @Flag(name: .long, help: "Show raw xcodebuild output without formatting")
     var raw: Bool = false
@@ -26,6 +26,11 @@ struct RunCommand: AsyncParsableCommand {
     var passthroughArgs: [String] = []
 
     func run() async throws {
+        guard let command else {
+            showStatus()
+            return
+        }
+
         let (commandName, variantName) = Self.parseCommand(command)
 
         let config = try ConfigLoader.load()
@@ -65,6 +70,32 @@ struct RunCommand: AsyncParsableCommand {
 
         if let postHook = resolved.hooks?.post {
             try HookRunner.run(postHook, label: "post-\(commandName)", workingDirectory: projectRoot)
+        }
+    }
+
+    private func showStatus() {
+        guard let config = try? ConfigLoader.load() else {
+            print("No xc.yaml found. Run 'xc init' to generate one.")
+            return
+        }
+
+        let commands = config.project.commands ?? [:]
+        guard !commands.isEmpty else {
+            print("No commands defined in xc.yaml.")
+            return
+        }
+
+        for (name, command) in commands.sorted(by: { $0.key < $1.key }) {
+            print(name)
+            let variants = command.variants ?? [:]
+            for (variantName, variant) in variants.sorted(by: { $0.key < $1.key }) {
+                let summary = ListCommand.summarizeVariant(variant)
+                if summary.isEmpty {
+                    print("  :\(variantName)")
+                } else {
+                    print("  :\(variantName)\t\(summary)")
+                }
+            }
         }
     }
 

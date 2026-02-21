@@ -41,7 +41,7 @@ enum ConfigLoader {
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let yaml = String(data: data, encoding: .utf8) ?? ""
         let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
-        return (config, configDir)
+        return (config.expandingEnvVars(), configDir)
     }
 
     /// Walk up from `directory` looking for xc.yaml. Returns the directory containing it, or nil.
