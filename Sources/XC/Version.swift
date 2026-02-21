@@ -1,1 +1,1 @@
-let xcVersion = "0.1.0"
+let xcVersion = "dev"
