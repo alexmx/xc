@@ -1,7 +1,7 @@
 import Foundation
 
 enum HookRunner {
-    static func run(_ command: String, label: String) throws {
+    static func run(_ command: String, label: String, workingDirectory: String? = nil) throws {
         print("→ Running \(label) hook...")
 
         let process = Process()
@@ -9,6 +9,9 @@ enum HookRunner {
         process.arguments = ["-c", command]
         process.standardOutput = FileHandle.standardOutput
         process.standardError = FileHandle.standardError
+        if let workingDirectory {
+            process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
+        }
 
         try process.run()
         process.waitUntilExit()

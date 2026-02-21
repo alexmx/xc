@@ -1,10 +1,13 @@
 import Foundation
 
 enum CommandRunner {
-    static func exec(args: [String], useFormatter: Bool) throws {
+    static func exec(args: [String], useFormatter: Bool, workingDirectory: String? = nil) throws {
         let xcodebuild = Process()
         xcodebuild.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         xcodebuild.arguments = args
+        if let workingDirectory {
+            xcodebuild.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
+        }
 
         if useFormatter, let formatterURL = findXcbeautify() {
             let pipe = Pipe()

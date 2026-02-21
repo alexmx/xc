@@ -9,7 +9,7 @@ struct DestinationsCommand: ParsableCommand {
 
     func run() throws {
         // Show named destinations from xc.yaml if available
-        let projectConfig = try? ConfigLoader.loadProjectConfig()
+        let projectConfig = try? ConfigLoader.loadProjectConfig().0
         if let destinations = projectConfig?.destinations, !destinations.isEmpty {
             print("Named destinations (from xc.yaml):")
             let maxKeyLength = destinations.keys.map(\.count).max() ?? 0

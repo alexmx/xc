@@ -5,13 +5,20 @@ enum ConfigLoader {
     struct LoadedConfig: Sendable {
         let project: ProjectConfig
         let global: GlobalConfig?
+        let projectRoot: String
+
+        init(project: ProjectConfig, global: GlobalConfig?, projectRoot: String = ".") {
+            self.project = project
+            self.global = global
+            self.projectRoot = projectRoot
+        }
     }
 
     static func load(from directory: String? = nil) throws -> LoadedConfig {
-        let projectConfig = try loadProjectConfig(from: directory)
+        let (projectConfig, projectRoot) = try loadProjectConfig(from: directory)
         try validate(projectConfig)
         let globalConfig = try loadGlobalConfig()
-        return LoadedConfig(project: projectConfig, global: globalConfig)
+        return LoadedConfig(project: projectConfig, global: globalConfig, projectRoot: projectRoot)
     }
 
     static func validate(_ config: ProjectConfig) throws {
@@ -23,15 +30,34 @@ enum ConfigLoader {
         }
     }
 
-    static func loadProjectConfig(from directory: String? = nil) throws -> ProjectConfig {
-        let dir = directory ?? FileManager.default.currentDirectoryPath
-        let path = dir + "/xc.yaml"
-        guard FileManager.default.fileExists(atPath: path) else {
+    /// Load xc.yaml, walking up from the given directory until found.
+    /// Returns the parsed config and the directory where xc.yaml was found.
+    static func loadProjectConfig(from directory: String? = nil) throws -> (ProjectConfig, String) {
+        let startDir = directory ?? FileManager.default.currentDirectoryPath
+        guard let configDir = findConfigDirectory(from: startDir) else {
             throw XCError.configNotFound
         }
+        let path = configDir + "/xc.yaml"
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let yaml = String(data: data, encoding: .utf8) ?? ""
-        return try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
+        let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
+        return (config, configDir)
+    }
+
+    /// Walk up from `directory` looking for xc.yaml. Returns the directory containing it, or nil.
+    static func findConfigDirectory(from directory: String) -> String? {
+        var current = directory
+        let fm = FileManager.default
+        while true {
+            if fm.fileExists(atPath: current + "/xc.yaml") {
+                return current
+            }
+            let parent = (current as NSString).deletingLastPathComponent
+            if parent == current {
+                return nil
+            }
+            current = parent
+        }
     }
 
     static func loadGlobalConfig() throws -> GlobalConfig? {

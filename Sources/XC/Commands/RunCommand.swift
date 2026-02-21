@@ -35,8 +35,10 @@ struct RunCommand: AsyncParsableCommand {
             extraArgs: passthroughArgs
         )
 
+        let projectRoot = config.projectRoot
+
         if let preHook = resolved.hooks?.pre {
-            try HookRunner.run(preHook, label: "pre-\(commandName)")
+            try HookRunner.run(preHook, label: "pre-\(commandName)", workingDirectory: projectRoot)
         }
 
         if verbose {
@@ -48,10 +50,10 @@ struct RunCommand: AsyncParsableCommand {
         }
 
         let useFormatter = !raw && resolved.formatter != "raw"
-        try CommandRunner.exec(args: resolved.invocation, useFormatter: useFormatter)
+        try CommandRunner.exec(args: resolved.invocation, useFormatter: useFormatter, workingDirectory: projectRoot)
 
         if let postHook = resolved.hooks?.post {
-            try HookRunner.run(postHook, label: "post-\(commandName)")
+            try HookRunner.run(postHook, label: "post-\(commandName)", workingDirectory: projectRoot)
         }
     }
 
