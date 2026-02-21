@@ -1,17 +1,39 @@
 # xc
 
-A better way to run xcodebuild.
-
-Define your build commands once in `xc.yaml`, then run them with `xc build` instead of typing out the full xcodebuild invocation every time. Variants like `xc build:release` switch configuration with zero flags. Think of it as `package.json` scripts for Xcode projects.
+**Stop typing xcodebuild flags. Start shipping.**
 
 ```
-# instead of:
-xcodebuild build -workspace App.xcworkspace -scheme App -configuration Debug \
-  -destination "platform=iOS Simulator,name=iPhone 17 Pro"
-
-# just run:
 xc build
+xc test
+xc build:release
 ```
+
+That's it. No more copying 200-character xcodebuild invocations from your wiki. Define your commands once in `xc.yaml`, use them forever.
+
+```diff
+- xcodebuild build \
+-   -workspace App.xcworkspace \
+-   -scheme App \
+-   -configuration Release \
+-   -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
+-   -derivedDataPath ./DerivedData
+
++ xc build:release
+```
+
+---
+
+### Why xc?
+
+- **One file, all your build commands.** `xc.yaml` lives in your repo. Everyone on the team runs the same thing.
+- **Variants, not flags.** `build:release`, `test:coverage`, `archive:staging` - switch configurations in two words.
+- **Named destinations.** `sim`, `mac`, `device` instead of `platform=iOS Simulator,name=iPhone 17 Pro`.
+- **Script commands.** Run `swiftlint`, `tuist generate`, or anything else alongside your builds.
+- **Environment variables.** `${CI_SIMULATOR:-iPhone 17 Pro}` - same config, every machine.
+- **Pre/post hooks.** Lint before building, notify after archiving.
+- **xcbeautify built in.** Pretty output by default, `--raw` when you need it.
+
+---
 
 ## Install
 
@@ -25,6 +47,7 @@ cp .build/release/xc /usr/local/bin/xc
 Requires Swift 6.2+ and macOS 15+.
 
 **Optional:** Install [xcbeautify](https://github.com/cpisciotta/xcbeautify) for formatted output:
+
 ```bash
 brew install xcbeautify
 ```
@@ -33,56 +56,17 @@ brew install xcbeautify
 
 ```bash
 cd your-xcode-project
-xc init          # generates xc.yaml from your project
-xc build         # build with defaults
-xc test          # run tests
-xc build:release # build with release variant
+
+xc init            # auto-detects your project, generates xc.yaml
+xc build           # build with defaults
+xc test            # run tests
+xc build:release   # switch to release in one word
+xc doctor          # verify everything is set up correctly
 ```
 
-## Usage
+## The Config
 
-```
-xc <command>[:<variant>] [options] [-- extra-xcodebuild-args...]
-```
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `xc <command>` | Run a configured command (default) |
-| `xc init` | Generate `xc.yaml` from your project |
-| `xc list` | Show available commands and variants |
-| `xc doctor` | Validate project setup and diagnose issues |
-| `xc destinations` | List available destinations and simulators |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--dest <name>` | Override destination (name or raw string) |
-| `--raw` | Show raw xcodebuild output (skip xcbeautify) |
-| `-v`, `--verbose` | Print the resolved xcodebuild invocation |
-| `--dry-run` | Print the command without executing it |
-| `--version` | Show version |
-
-### Examples
-
-```bash
-xc build                              # build with defaults
-xc build:release                      # build with release variant
-xc test --dest mac                    # test on macOS instead of simulator
-xc build --verbose                    # see the full xcodebuild invocation
-xc build --dry-run                    # print without executing
-xc test --raw -- -enableAddressSanitizer YES  # raw output + extra flags
-xc lint                               # run a script command
-xc lint:fix                           # run a script variant
-```
-
-## Configuration
-
-### `xc.yaml`
-
-Place `xc.yaml` at the root of your project. xc searches upward from the current directory, so it works from any subdirectory.
+`xc.yaml` at the root of your project:
 
 ```yaml
 workspace: App.xcworkspace
@@ -99,8 +83,7 @@ defaults:
 commands:
   build:
     hooks:
-      pre: "echo 'Building...'"
-      post: "echo 'Done.'"
+      pre: "swiftlint lint"
     variants:
       release:
         configuration: Release
@@ -117,52 +100,61 @@ commands:
   archive:
     configuration: Release
     archive-path: "./build/App.xcarchive"
+
+  lint:
+    run: "swiftlint lint --quiet"
+    variants:
+      fix:
+        run: "swiftlint lint --fix"
 ```
 
-### Config Reference
+That config gives you all of this:
 
-#### Root
+```bash
+xc build              # debug build
+xc build:release      # release build
+xc test               # run tests
+xc test:coverage      # tests with code coverage
+xc archive            # create archive
+xc clean              # clean build
+xc lint               # run swiftlint
+xc lint:fix           # autofix lint issues
+```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `project` | string | Path to `.xcodeproj` (mutually exclusive with `workspace`) |
-| `workspace` | string | Path to `.xcworkspace` (mutually exclusive with `project`) |
-| `destinations` | map | Named destination aliases |
-| `defaults` | object | Default settings applied to all commands |
-| `commands` | map | Command definitions (required) |
+## CLI Reference
 
-#### Command Fields
+```
+xc <command>[:<variant>] [options] [-- extra-xcodebuild-args...]
+```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `run` | string | Shell script to execute (makes this a script command) |
-| `scheme` | string | Xcode scheme |
-| `configuration` | string | Build configuration (Debug, Release, etc.) |
-| `destination` | string or list | Destination name(s) or raw string(s) |
-| `test-plan` | string | Test plan name (test commands only) |
-| `result-bundle-path` | string | Result bundle output path (test commands only) |
-| `xcconfig` | string | Path to `.xcconfig` file |
-| `derived-data-path` | string | Custom derived data path |
-| `archive-path` | string | Archive output path (archive command only) |
-| `extra-args` | list | Extra arguments passed to xcodebuild |
-| `hooks` | object | Pre/post hooks (`pre:` and `post:` shell commands) |
-| `variants` | map | Named variants that override this command's settings |
+| Command | |
+|---------|---|
+| `xc <command>` | Run a configured command |
+| `xc list` | Show available commands and variants |
+| `xc init` | Generate `xc.yaml` from your project |
+| `xc doctor` | Validate setup and diagnose issues |
+| `xc destinations` | List available simulators and platforms |
 
-### Resolution Order
+| Option | |
+|--------|---|
+| `--dest <name>` | Override destination by name or raw string |
+| `--raw` | Skip xcbeautify, show raw xcodebuild output |
+| `-v`, `--verbose` | Print the resolved xcodebuild invocation |
+| `--dry-run` | Print the command without executing it |
+| `--version` | Show version |
 
-Settings are layered from most to least specific:
+```bash
+xc test --dest mac                             # test on macOS
+xc build --verbose                             # see what xcodebuild gets
+xc build --dry-run                             # inspect without running
+xc test --raw -- -enableAddressSanitizer YES   # raw output + extra flags
+```
 
-1. CLI flags (`--dest`, `-- extra-args`)
-2. Variant config
-3. Command config
-4. Project defaults (`defaults` in `xc.yaml`)
-5. Global defaults (`~/.config/xc/config.yaml`)
-
-Variant fields **override** the parent command — they don't merge. For `extra-args`, variant args replace base args entirely.
+## Configuration Guide
 
 ### Named Destinations
 
-Define destination aliases to avoid repeating long strings:
+Give short names to long destination strings:
 
 ```yaml
 destinations:
@@ -171,10 +163,10 @@ destinations:
   mac: "platform=macOS"
 
 defaults:
-  destination: sim    # reference by name
+  destination: sim
 ```
 
-A command can target multiple destinations:
+Test on multiple destinations at once:
 
 ```yaml
 commands:
@@ -184,11 +176,33 @@ commands:
       - sim-ipad
 ```
 
-Run `xc destinations` to see available simulators on your machine.
+Run `xc destinations` to see what's available on your machine.
+
+### Variants
+
+A variant inherits everything from its parent command and overrides only what it specifies:
+
+```yaml
+commands:
+  build:
+    scheme: App
+    configuration: Debug
+    variants:
+      release:
+        configuration: Release    # only this changes
+      core:
+        scheme: Core              # different scheme, same config
+```
+
+```bash
+xc build          # scheme: App, configuration: Debug
+xc build:release  # scheme: App, configuration: Release
+xc build:core     # scheme: Core, configuration: Debug
+```
 
 ### Script Commands
 
-Commands with a `run` field execute shell scripts instead of xcodebuild:
+Add a `run` field to execute shell scripts instead of xcodebuild:
 
 ```yaml
 commands:
@@ -205,12 +219,7 @@ commands:
     run: "find Sources -name '*.swift' | xargs wc -l | tail -1"
 ```
 
-```bash
-xc lint          # runs swiftlint lint --quiet
-xc lint:fix      # runs swiftlint lint --fix
-```
-
-Script commands support hooks, variants, `extra-args`, and `--dry-run` just like xcodebuild commands.
+Scripts support hooks, variants, extra-args, and `--dry-run` like any other command.
 
 ### Environment Variables
 
@@ -226,14 +235,12 @@ commands:
 ```
 
 ```bash
-IOS_SIMULATOR="iPhone SE" xc test    # override simulator via env
+IOS_SIMULATOR="iPhone SE" xc test   # override from env
 ```
-
-Only the `${}` syntax is supported — bare `$VAR` is not expanded.
 
 ### Hooks
 
-Run shell commands before and after any command:
+Run scripts before and after any command:
 
 ```yaml
 commands:
@@ -244,12 +251,22 @@ commands:
     variants:
       release:
         hooks:
-          pre: "swiftlint lint --strict"  # variant hooks override command hooks
+          pre: "swiftlint lint --strict"
 ```
+
+### Resolution Order
+
+Settings layer from most to least specific:
+
+1. CLI flags (`--dest`, `-- extra-args`)
+2. Variant config
+3. Command config
+4. Project defaults (`defaults` in `xc.yaml`)
+5. Global defaults (`~/.config/xc/config.yaml`)
 
 ### Global Config
 
-Optional global defaults at `~/.config/xc/config.yaml`:
+Shared defaults across all your projects at `~/.config/xc/config.yaml`:
 
 ```yaml
 defaults:
@@ -260,13 +277,36 @@ settings:
   verbose: false
 ```
 
-Global defaults apply when neither the command nor project defaults specify a value.
+### Config Reference
+
+**Root fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `project` | string | Path to `.xcodeproj` (mutually exclusive with `workspace`) |
+| `workspace` | string | Path to `.xcworkspace` |
+| `destinations` | map | Named destination aliases |
+| `defaults` | object | Default settings applied to all commands |
+| `commands` | map | Command definitions (required) |
+
+**Command fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `run` | string | Shell script (makes this a script command) |
+| `scheme` | string | Xcode scheme |
+| `configuration` | string | Build configuration |
+| `destination` | string or list | Destination name(s) or raw string(s) |
+| `xcconfig` | string | Path to `.xcconfig` file |
+| `test-plan` | string | Test plan (test commands only) |
+| `result-bundle-path` | string | Result bundle path (test commands only) |
+| `derived-data-path` | string | Custom derived data path |
+| `archive-path` | string | Archive path (archive command only) |
+| `extra-args` | list | Additional xcodebuild arguments |
+| `hooks` | object | `pre` and `post` shell commands |
+| `variants` | map | Named variant overrides |
 
 ## Diagnostics
-
-### `xc doctor`
-
-Validates your entire setup:
 
 ```
 $ xc doctor
@@ -280,18 +320,16 @@ $ xc doctor
   OK    Global config    ~/.config/xc/config.yaml
 ```
 
-### `xc list`
-
-Shows all available commands and variants:
-
 ```
 $ xc list
-archive    configuration: Release, archive-path: ./build/App.xcarchive
+archive   configuration: Release, archive-path: ./build/App.xcarchive
 build
-  :release    configuration: Release
+  :release   configuration: Release
 clean
+lint      run: swiftlint lint --quiet
+  :fix       run: swiftlint lint --fix
 test
-  :coverage    extra-args: -enableCodeCoverage YES
+  :coverage  extra-args: -enableCodeCoverage YES
 ```
 
 ## License
