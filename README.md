@@ -1,6 +1,6 @@
 # xc
 
-**Stop typing xcodebuild flags. Start shipping.**
+**A better way to run xcodebuild. Stop typing flags. Start shipping.**
 
 ```
 xc build
