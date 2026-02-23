@@ -2,14 +2,11 @@
 
 **A better way to run xcodebuild. Stop typing flags. Start shipping.**
 
-```
-xc build
-xc test
-xc build:release
-xc archive
-```
+<p align="center">
+<img width="700" height="752" alt="hero" src="https://github.com/user-attachments/assets/57f2944d-2df2-4b89-9208-de01e9e5660e" />
+</p>
 
-That's it. No more copying 200-character xcodebuild invocations from your wiki. Define your commands once in `xc.yaml`, use them forever.
+That's it. No more copying 200-character `xcodebuild` invocations from your wiki. Define your commands once in `xc.yaml`, use them forever.
 
 ```bash
 # Before
