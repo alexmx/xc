@@ -28,7 +28,7 @@ struct RunCommand: AsyncParsableCommand {
     )
     var directory: String?
 
-    @Flag(name: .long, help: "Run the command in every member project")
+    @Flag(name: .long, help: "Run the command in the root project and every member")
     var all: Bool = false
 
     @Option(name: .long, help: "Comma-separated member names to run the command in")
@@ -124,43 +124,46 @@ struct RunCommand: AsyncParsableCommand {
             throw XCError.invalidConfig("No members defined. Add a 'members' section to use --all/--members.")
         }
 
-        let targets = try Self.selectMembers(all: all, list: members, available: available)
+        let targets = try Self.fanOutTargetNames(all: all, list: members, available: available)
         let (commandName, _) = Self.parseCommand(command)
 
         var failed: [String] = []
         var ran = 0
 
-        for name in targets {
-            let memberConfig: ConfigLoader.LoadedConfig
+        for target in targets {
+            let isRoot = target == Self.rootTarget
+            let label = isRoot ? "root" : target
+
+            let config: ConfigLoader.LoadedConfig
             do {
-                memberConfig = try loadMember(name, rootConfig: rootConfig)
+                config = isRoot ? rootConfig : try loadMember(target, rootConfig: rootConfig)
             } catch {
-                Self.announce("==> \(name): \(Self.message(error))")
-                failed.append(name)
+                Self.announce("==> \(label): \(Self.message(error))")
+                failed.append(label)
                 if !continueOnFailure { throw XCError.fanOutFailed(failed) }
                 continue
             }
 
-            // Members legitimately differ — skip those that don't define this command.
-            guard (memberConfig.project.commands ?? [:])[commandName] != nil else {
-                Self.announce("==> \(name) — skipped (no '\(commandName)')")
+            // Targets legitimately differ, so skip those that don't define this command.
+            guard (config.project.commands ?? [:])[commandName] != nil else {
+                Self.announce("==> \(label) (skipped: no '\(commandName)')")
                 continue
             }
 
             // Flush before handing the terminal to a child process so headers stay ordered.
-            Self.announce("==> \(name)")
+            Self.announce("==> \(label)")
             ran += 1
             do {
-                try execute(command, config: memberConfig)
+                try execute(command, config: config)
             } catch {
-                Self.announce("✗ \(name): \(Self.message(error))")
-                failed.append(name)
+                Self.announce("✗ \(label): \(Self.message(error))")
+                failed.append(label)
                 if !continueOnFailure { throw XCError.fanOutFailed(failed) }
             }
         }
 
         if !failed.isEmpty { throw XCError.fanOutFailed(failed) }
-        if ran == 0 { print("No selected member defines '\(commandName)'.") }
+        if ran == 0 { print("No selected target defines '\(commandName)'.") }
     }
 
     // MARK: - Parsing helpers
@@ -184,6 +187,16 @@ struct RunCommand: AsyncParsableCommand {
         let member = String(input[..<slash])
         let command = String(input[input.index(after: slash)...])
         return (member.isEmpty ? nil : member, command)
+    }
+
+    /// Internal label for the root project as a fan-out target. Members can't be named ".".
+    static let rootTarget = "."
+
+    /// Ordered fan-out targets. `--all` means all: the root project first, then every member.
+    /// An explicit `--members` list selects those members only (root excluded).
+    static func fanOutTargetNames(all: Bool, list: String?, available: [String]) throws -> [String] {
+        let members = try selectMembers(all: all, list: list, available: available)
+        return all ? [rootTarget] + members : members
     }
 
     /// Resolve the set of members to fan out over from `--all`/`--members`, validating names.

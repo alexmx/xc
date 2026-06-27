@@ -46,7 +46,7 @@ IOS_SIMULATOR="iPhone SE" xc test              # env vars feed ${VAR} in the con
 - `-v`, `--verbose`: print the resolved `xcodebuild` invocation, then run it. Best first step when a build behaves unexpectedly.
 - `--raw`: skip xcbeautify, stream raw xcodebuild output. Use when you need full diagnostics or xcbeautify is swallowing an error.
 - `-C`, `--directory <dir>`: run as if you'd `cd <dir>` first, using that directory's `xc.yaml`. Works with no config changes.
-- `--all` / `--members <names>`: fan a command out across member projects (see Monorepos below). `--continue` continues past a failing member.
+- `--all` / `--members <names>`: fan a command out across the root and member projects (see Monorepos below). `--continue` continues past a failing member.
 - `--version`: print the xc version (also `xc --version`).
 
 When a build fails, re-run with `--verbose` (see the real invocation) or `--raw` (see full output) before changing anything.
@@ -68,11 +68,11 @@ Three ways to drive nested projects:
 ```bash
 xc -C Packages/Core test      # run in any directory's xc.yaml (no registration needed)
 xc core/build                 # address a registered member: member/command[:variant]
-xc test --all                 # fan out across all members that define `test`
+xc test --all                 # run in the root and every member that defines `test`
 xc build --members core,network --continue
 ```
 
-Fan-out runs sequentially in declared order, **skips** members lacking the command, and stops at the first failure unless `--continue`. Members are one level deep and inherit nothing from the root: use global config (`~/.config/xc/config.yaml`) for cross-project defaults.
+`--all` runs the command in the **root project and every member**; `--members core,network` limits it to the named members (root excluded). Fan-out runs sequentially in declared order, **skips** targets lacking the command, and stops at the first failure unless `--continue`. Members are one level deep and inherit nothing from the root: use global config (`~/.config/xc/config.yaml`) for cross-project defaults.
 
 ## Subcommands
 

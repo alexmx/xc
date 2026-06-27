@@ -127,7 +127,7 @@ xc [<member>/]<command>[:<variant>] [options] [-- extra-xcodebuild-args...]
 | `-v`, `--verbose` | Print the resolved xcodebuild invocation |
 | `--dry-run` | Print the command without executing it |
 | `-C`, `--directory <dir>` | Run as if in `<dir>`, using its `xc.yaml` |
-| `--all` | Run the command in every member project |
+| `--all` | Run the command in the root project and every member |
 | `--members <names>` | Run the command in the listed members (comma-separated) |
 | `--continue` | When fanning out, continue after a member fails |
 | `--version` | Show version |
@@ -205,11 +205,11 @@ members:
 ```bash
 xc -C Packages/Core test     # run in any directory's xc.yaml (no registration needed)
 xc core/build:release        # member/command:variant
-xc test --all                # fan out across members that define `test`
+xc test --all                # run `test` in the root and every member that defines it
 xc build --all --continue    # don't stop at the first failure
 ```
 
-Fan-out runs sequentially, skips members that don't define the command, and is fail-fast unless `--continue`. `xc list` and `xc doctor` are member-aware. Members are one level deep and inherit nothing from the root; use the [global config](#global-config) for cross-project defaults. See [`Examples/Monorepo`](Examples/Monorepo).
+`--all` runs the command in the root project and every member; `--members core,network` limits it to the named members (root excluded). Fan-out runs sequentially, skips targets that don't define the command, and is fail-fast unless `--continue`. `xc list` and `xc doctor` are member-aware. Members are one level deep and inherit nothing from the root; use the [global config](#global-config) for cross-project defaults. See [`Examples/Monorepo`](Examples/Monorepo).
 
 ### Environment variables
 

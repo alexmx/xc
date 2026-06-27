@@ -69,6 +69,20 @@ struct MembersTests {
         }
     }
 
+    // MARK: - fanOutTargetNames
+
+    @Test("fanOutTargetNames with --all includes the root first, then every member")
+    func fanOutTargetsAll() throws {
+        let result = try RunCommand.fanOutTargetNames(all: true, list: nil, available: ["core", "network"])
+        #expect(result == [RunCommand.rootTarget, "core", "network"])
+    }
+
+    @Test("fanOutTargetNames with --members excludes the root")
+    func fanOutTargetsMembers() throws {
+        let result = try RunCommand.fanOutTargetNames(all: false, list: "network", available: ["core", "network"])
+        #expect(result == ["network"])
+    }
+
     // MARK: - ConfigLoader member helpers
 
     @Test("memberNames are sorted")
