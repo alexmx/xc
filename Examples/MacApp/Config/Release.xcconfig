@@ -1,0 +1,4 @@
+// Release build settings applied via `xcconfig:` in xc.yaml.
+// Passed to xcodebuild as `-xcconfig Config/Release.xcconfig`.
+
+SWIFT_COMPILATION_MODE = wholemodule

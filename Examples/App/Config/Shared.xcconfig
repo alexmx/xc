@@ -1,0 +1,5 @@
+// Shared build settings applied via `xcconfig:` in xc.yaml.
+// Passed to xcodebuild as `-xcconfig Config/Shared.xcconfig`.
+
+// Example: a custom compilation condition available to all builds that use it.
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) XC_SAMPLE

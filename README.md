@@ -212,6 +212,20 @@ xc build:release  # scheme: App, configuration: Release
 xc build:core     # scheme: Core, configuration: Debug
 ```
 
+### Command Names Are xcodebuild Actions
+
+A command's name is passed straight to `xcodebuild` as its action, so any xcodebuild action works — not just `build`, `test`, `clean`, and `archive`:
+
+```yaml
+commands:
+  build-for-testing: {}        # → xcodebuild build-for-testing ...
+  test-without-building:       # → xcodebuild test-without-building ... (no recompile)
+    test-plan: Smoke
+  analyze: {}                  # → xcodebuild analyze ...
+```
+
+Pair `build-for-testing` (compile once) with `test-without-building` (re-run the existing build) to skip recompilation on test reruns or split build and test across CI stages. Test-only options like `test-plan` still apply to `test-without-building`. Commands with a `run` field are shell scripts instead (see below).
+
 ### Script Commands
 
 Add a `run` field to execute shell scripts instead of xcodebuild:

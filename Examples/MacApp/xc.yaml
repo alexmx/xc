@@ -1,7 +1,9 @@
 # xc configuration for SampleMacApp
+# A macOS-focused companion to Examples/App/xc.yaml.
 
 workspace: SampleMacApp.xcworkspace
 
+# macOS destinations, including an Intel (Rosetta) slice via `arch=`.
 destinations:
   mac: "platform=macOS"
   rosetta: "platform=macOS,arch=x86_64"
@@ -15,16 +17,23 @@ commands:
   build:
     hooks:
       pre: "tuist generate --no-open"
+      post: "say 'build complete'"
     variants:
       release:
         configuration: Release
+        xcconfig: "Config/Release.xcconfig"   # whole-module optimization for release
       rosetta:
         destination: rosetta
       core:
         scheme: Core
+      quick:
+        hooks: {}                              # disable the pre/post hooks
 
   test:
     scheme: SampleMacAppTests
+    destination:                               # test on native + Rosetta
+      - mac
+      - rosetta
     variants:
       core:
         scheme: CoreTests
@@ -33,6 +42,14 @@ commands:
         extra-args:
           - "-enableCodeCoverage"
           - "YES"
+
+  # Compile the test bundle once, then re-run without rebuilding.
+  build-for-testing:
+    scheme: SampleMacAppTests
+  test-without-building:
+    scheme: SampleMacAppTests
+
+  analyze: {}
 
   clean: {}
 

@@ -99,6 +99,9 @@ commands:                           # required
   archive:
     configuration: Release
     archive-path: "${BUILD_DIR:-./build}/App.xcarchive"
+  build-for-testing: {}                # the command name IS the xcodebuild action
+  test-without-building:               # → xcodebuild test-without-building (no recompile)
+    test-plan: Smoke
   lint:
     run: "swiftlint lint --quiet"      # `run:` makes it a script command, not xcodebuild
     variants:
@@ -112,6 +115,7 @@ settings:                             # optional project-level settings (also va
 Key points when authoring:
 - **Root fields**: `project` *or* `workspace` (mutually exclusive), `destinations`, `defaults`, `commands` (required), `settings`.
 - **Command fields**: `run`, `scheme`, `configuration`, `destination` (string or list), `xcconfig`, `test-plan`, `result-bundle-path`, `derived-data-path`, `archive-path`, `extra-args` (list), `hooks` (`pre`/`post`), `variants`.
+- **A command's name is passed to `xcodebuild` as its action** (unless it has `run:`). Beyond `build`/`test`/`clean`/`archive`, any xcodebuild action works — `build-for-testing`, `test-without-building` (re-run tests with no recompile — `-testPlan` still applies), `analyze`, etc. Pair `build-for-testing` (compile once) with `test-without-building` (fast reruns / CI split).
 - **`run:` commands** are plain shell (lint, format, codegen) — they support hooks, variants, `extra-args`, and `--dry-run` like build commands.
 - **Env vars**: `${VAR}` or `${VAR:-default}` anywhere — keeps configs portable across machines/CI.
 - **Hooks** on a command run for all its variants; a variant overrides them or disables with `hooks: {}`.
