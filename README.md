@@ -247,6 +247,43 @@ commands:
 
 Scripts support hooks, variants, extra-args, and `--dry-run` like any other command.
 
+### Swift Packages
+
+A SwiftPM package has no `.xcodeproj` or `.xcworkspace` — just omit both `project` and `workspace`. xc then drives the `Package.swift` in the current directory. There are two ways to build a package:
+
+```yaml
+destinations:
+  mac: "platform=macOS"
+  sim: "platform=iOS Simulator,name=${IOS_SIMULATOR:-iPhone 17 Pro}"
+
+defaults:
+  scheme: MyPackage      # xcodebuild auto-generates a scheme named after the package
+  destination: mac
+
+commands:
+  # 1. swift toolchain — the native way, no scheme/destination needed
+  swift-build:
+    run: "swift build"
+  swift-test:
+    run: "swift test --parallel"
+
+  # 2. xcodebuild — build/test the package for a simulator or other platform
+  build:
+    variants:
+      ios: { destination: sim }
+  test:
+    variants:
+      ios: { destination: sim }
+```
+
+```bash
+xc swift-test       # swift test --parallel
+xc build            # xcodebuild build -scheme MyPackage -destination platform=macOS
+xc test:ios         # xcodebuild test  -scheme MyPackage -destination "platform=iOS Simulator,..."
+```
+
+See [`Examples/Package`](Examples/Package) for a complete runnable example.
+
 ### Environment Variables
 
 Use `${VAR}` or `${VAR:-default}` anywhere in the config:

@@ -1,0 +1,45 @@
+# xc configuration for SamplePackage — an ad-hoc Swift Package.
+#
+# A SwiftPM package has no .xcodeproj/.xcworkspace: omit BOTH `project` and
+# `workspace` and xc drives the Package.swift in this directory. Two ways to
+# build it, shown below:
+#   1. The swift toolchain via `run:` scripts  (swift build / test / run)
+#   2. xcodebuild against the package's auto-generated scheme  (for simulators
+#      and multi-platform builds)
+
+destinations:
+  mac: "platform=macOS"
+  sim: "platform=iOS Simulator,name=${IOS_SIMULATOR:-iPhone 17 Pro}"
+
+defaults:
+  # xcodebuild auto-generates a scheme named after the package.
+  scheme: SamplePackage
+  destination: mac
+
+commands:
+  # --- swift toolchain: the native way to build/test a package ---------------
+  swift-build:
+    run: "swift build"
+    variants:
+      release:
+        run: "swift build -c release"
+  swift-test:
+    run: "swift test --parallel"
+  # `swift run` needs an executable product — uncomment for an executable package:
+  # swift-run:
+  #   run: "swift run"
+
+  # --- xcodebuild: build/test the package for a simulator or other platform ---
+  build:
+    variants:
+      ios:
+        destination: sim
+  test:
+    variants:
+      ios:
+        destination: sim
+
+  clean: {}
+
+settings:
+  formatter: xcbeautify

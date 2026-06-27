@@ -116,6 +116,19 @@ Key points when authoring:
 - **Root fields**: `project` *or* `workspace` (mutually exclusive), `destinations`, `defaults`, `commands` (required), `settings`.
 - **Command fields**: `run`, `scheme`, `configuration`, `destination` (string or list), `xcconfig`, `test-plan`, `result-bundle-path`, `derived-data-path`, `archive-path`, `extra-args` (list), `hooks` (`pre`/`post`), `variants`.
 - **A command's name is passed to `xcodebuild` as its action** (unless it has `run:`). Beyond `build`/`test`/`clean`/`archive`, any xcodebuild action works — `build-for-testing`, `test-without-building` (re-run tests with no recompile — `-testPlan` still applies), `analyze`, etc. Pair `build-for-testing` (compile once) with `test-without-building` (fast reruns / CI split).
+- **Ad-hoc Swift packages**: a SwiftPM package has no `.xcodeproj`/`.xcworkspace` — omit **both** `project` and `workspace` (only one of the two may be set, and neither is required). Two ways to drive a package:
+  - `run:` scripts for the swift toolchain — `swift build`, `swift test`, `swift run`. Simplest; no scheme/destination needed.
+  - xcodebuild against the package's auto-generated scheme (named after the package) — set `scheme:` + `destination:` to build/test for a simulator or other platform.
+
+```yaml
+# xc.yaml for a Swift package — no project/workspace
+defaults: { scheme: MyPackage, destination: "platform=macOS" }
+commands:
+  swift-build: { run: "swift build" }
+  swift-test:  { run: "swift test --parallel" }
+  build: {}                      # → xcodebuild build -scheme MyPackage ...
+  test:  {}                      # → xcodebuild test  -scheme MyPackage ...
+```
 - **`run:` commands** are plain shell (lint, format, codegen) — they support hooks, variants, `extra-args`, and `--dry-run` like build commands.
 - **Env vars**: `${VAR}` or `${VAR:-default}` anywhere — keeps configs portable across machines/CI.
 - **Hooks** on a command run for all its variants; a variant overrides them or disables with `hooks: {}`.
