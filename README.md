@@ -305,6 +305,13 @@ settings:
 
 Use `--raw` on any command to skip formatting for a single invocation.
 
+A `settings` block can also live in a project's `xc.yaml`, overriding the global config for that project:
+
+```yaml
+settings:
+  formatter: "xcbeautify --disable-logging"
+```
+
 ### Config Reference
 
 **Root fields:**
@@ -316,6 +323,7 @@ Use `--raw` on any command to skip formatting for a single invocation.
 | `destinations` | map | Named destination aliases |
 | `defaults` | object | Default settings applied to all commands |
 | `commands` | map | Command definitions (required) |
+| `settings` | object | `formatter` / `verbose` (see [Global Config](#global-config)); set here to override per project |
 
 **Command fields:**
 
@@ -360,6 +368,14 @@ $ xc list
     :fix       $ swiftlint lint --fix
   test         scheme: AppTests
     :ci        result-bundle-path: ./build/tests.xcresult, extra-args: -enableCodeCoverage YES
+```
+
+## Use with AI agents
+
+A skill guide for agents driving xc via the CLI lives at [`skills/use-xc/SKILL.md`](skills/use-xc/SKILL.md). Install it with [Skillman](https://github.com/alexmx/skillman):
+
+```bash
+skillman install github.com/alexmx/xc
 ```
 
 ## License
