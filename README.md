@@ -136,13 +136,14 @@ xc lint:fix           # autofix lint issues
 ## CLI Reference
 
 ```
-xc <command>[:<variant>] [options] [-- extra-xcodebuild-args...]
+xc [<member>/]<command>[:<variant>] [options] [-- extra-xcodebuild-args...]
 ```
 
 | Command | |
 |---------|---|
 | `xc <command>` | Run a configured command |
-| `xc list` | Show available commands and variants |
+| `xc <member>/<command>` | Run a command in a nested member project |
+| `xc list` | Show available commands, variants, and members |
 | `xc init` | Generate `xc.yaml` from your project |
 | `xc doctor` | Validate setup and diagnose issues |
 | `xc destinations` | List available simulators and platforms |
@@ -153,6 +154,10 @@ xc <command>[:<variant>] [options] [-- extra-xcodebuild-args...]
 | `--raw` | Skip xcbeautify, show raw xcodebuild output |
 | `-v`, `--verbose` | Print the resolved xcodebuild invocation |
 | `--dry-run` | Print the command without executing it |
+| `-C`, `--directory <dir>` | Run as if in `<dir>`, using its `xc.yaml` |
+| `--all` | Run the command in every member project |
+| `--members <names>` | Run the command in the listed members (comma-separated) |
+| `--continue` | When fanning out, continue after a member fails |
 | `--version` | Show version |
 
 ```bash
@@ -160,6 +165,9 @@ xc test --dest mac                             # test on macOS
 xc build --verbose                             # see what xcodebuild gets
 xc build --dry-run                             # inspect without running
 xc test --raw -- -enableAddressSanitizer YES   # raw output + extra flags
+xc -C Packages/Core test                       # run in another directory's xc.yaml
+xc core/build:release                          # run a member's command
+xc test --all                                  # run `test` across all members
 ```
 
 ## Configuration Guide
@@ -284,6 +292,41 @@ xc test:ios         # xcodebuild test  -scheme MyPackage -destination "platform=
 
 See [`Examples/Package`](Examples/Package) for a complete runnable example.
 
+### Monorepos & Members
+
+In a repo with several projects (say a `Packages/` directory of SPM packages, each with its own `xc.yaml`), register them as **members** of a root `xc.yaml` and drive them all from the repo root:
+
+```yaml
+# repo-root/xc.yaml
+members:
+  core: Packages/Core
+  network: Packages/Network
+
+commands:
+  lint:
+    run: "swiftlint lint --quiet"   # the root can still have its own commands
+```
+
+Each member stays a normal, standalone `xc.yaml` (it still works if you `cd` into it). There are three ways to use them:
+
+```bash
+# 1. Run in any directory's xc.yaml (no registration needed) — like `cd dir && xc`
+xc -C Packages/Core test
+
+# 2. Address a registered member's command directly (runs with that member as cwd)
+xc core/build
+xc core/test:ci          # member `core`, command `test`, variant `ci`
+
+# 3. Fan out a command across members
+xc test --all            # run `test` in every member that defines it
+xc build --members core,network
+xc build --all --continue   # don't stop at the first failure
+```
+
+Fan-out runs sequentially in declared order, **skips** members that don't define the command, and stops at the first failure unless `--continue` is passed (then it reports which members failed at the end). `xc list` and `xc doctor` are member-aware — `list` shows each member's commands, `doctor` validates that each member's `xc.yaml` loads.
+
+Members are one level deep and inherit nothing from the root by default — for cross-project defaults, use the [global config](#global-config). See [`Examples/Monorepo`](Examples/Monorepo) for a complete runnable example.
+
 ### Environment Variables
 
 Use `${VAR}` or `${VAR:-default}` anywhere in the config:
@@ -375,6 +418,7 @@ settings:
 | `defaults` | object | Default settings applied to all commands |
 | `commands` | map | Command definitions (required) |
 | `settings` | object | `formatter` / `verbose` (see [Global Config](#global-config)); set here to override per project |
+| `members` | map | Nested projects, `name: path` — addressable as `name/command` (see [Monorepos & Members](#monorepos--members)) |
 
 **Command fields:**
 

@@ -45,9 +45,34 @@ IOS_SIMULATOR="iPhone SE" xc test              # env vars feed ${VAR} in the con
 - `--dry-run` — print the resolved command **without running it**. Use this to preview what xc will execute before a slow or destructive build.
 - `-v`, `--verbose` — print the resolved `xcodebuild` invocation, then run it. Best first step when a build behaves unexpectedly.
 - `--raw` — skip xcbeautify, stream raw xcodebuild output. Use when you need full diagnostics or xcbeautify is swallowing an error.
+- `-C`, `--directory <dir>` — run as if you'd `cd <dir>` first, using that directory's `xc.yaml`. Works with no config changes.
+- `--all` / `--members <names>` — fan a command out across member projects (see Monorepos below). `--continue` continues past a failing member.
 - `--version` — print the xc version (also `xc --version`).
 
 When a build fails, re-run with `--verbose` (see the real invocation) or `--raw` (see full output) before changing anything.
+
+## Monorepos (members)
+
+A root `xc.yaml` can register nested projects as **members** (`name: path`), each with its own standalone `xc.yaml` — e.g. a `Packages/` of SPM packages. Run `xc list` at the root to see members and their commands.
+
+```yaml
+members:
+  core: Packages/Core
+  network: Packages/Network
+commands:
+  lint: { run: "swiftlint lint --quiet" }   # root still needs ≥1 command
+```
+
+Three ways to drive nested projects:
+
+```bash
+xc -C Packages/Core test      # run in any directory's xc.yaml (no registration needed)
+xc core/build                 # address a registered member: member/command[:variant]
+xc test --all                 # fan out across all members that define `test`
+xc build --members core,network --continue
+```
+
+Fan-out runs sequentially in declared order, **skips** members lacking the command, and stops at the first failure unless `--continue`. Members are one level deep and inherit nothing from the root — use global config (`~/.config/xc/config.yaml`) for cross-project defaults.
 
 ## Subcommands
 
@@ -113,7 +138,7 @@ settings:                             # optional project-level settings (also va
 ```
 
 Key points when authoring:
-- **Root fields**: `project` *or* `workspace` (mutually exclusive), `destinations`, `defaults`, `commands` (required), `settings`.
+- **Root fields**: `project` *or* `workspace` (mutually exclusive), `destinations`, `defaults`, `commands` (required), `settings`, `members` (nested projects — see Monorepos).
 - **Command fields**: `run`, `scheme`, `configuration`, `destination` (string or list), `xcconfig`, `test-plan`, `result-bundle-path`, `derived-data-path`, `archive-path`, `extra-args` (list), `hooks` (`pre`/`post`), `variants`.
 - **A command's name is passed to `xcodebuild` as its action** (unless it has `run:`). Beyond `build`/`test`/`clean`/`archive`, any xcodebuild action works — `build-for-testing`, `test-without-building` (re-run tests with no recompile — `-testPlan` still applies), `analyze`, etc. Pair `build-for-testing` (compile once) with `test-without-building` (fast reruns / CI split).
 - **Ad-hoc Swift packages**: a SwiftPM package has no `.xcodeproj`/`.xcworkspace` — omit **both** `project` and `workspace` (only one of the two may be set, and neither is required). Two ways to drive a package:
