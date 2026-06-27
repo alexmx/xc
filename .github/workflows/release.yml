@@ -48,6 +48,10 @@ jobs:
           echo "let xcVersion = \"${{ steps.version.outputs.VERSION }}\"" > Sources/XC/Version.swift
           cat Sources/XC/Version.swift
 
+      - name: Run unit tests
+        if: steps.check_tag.outputs.exists == 'false'
+        run: swift test
+
       - name: Build universal binary
         if: steps.check_tag.outputs.exists == 'false'
         run: |
