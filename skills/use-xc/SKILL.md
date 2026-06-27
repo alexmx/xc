@@ -18,7 +18,7 @@ xc build:release         # run a command:variant
 xc test --dest mac       # override destination for one run
 ```
 
-A project needs an `xc.yaml` at its root; on "no config" run `xc init` to generate one.
+A project needs an `xc.yaml` (or `xc.yml`) at its root; on "no config" run `xc init` to generate one.
 
 ## Command syntax
 

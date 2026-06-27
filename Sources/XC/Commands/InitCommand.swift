@@ -11,8 +11,8 @@ struct InitCommand: ParsableCommand {
         let cwd = FileManager.default.currentDirectoryPath
         let configPath = cwd + "/xc.yaml"
 
-        guard !FileManager.default.fileExists(atPath: configPath) else {
-            print("xc.yaml already exists in this directory.")
+        if let existing = ConfigLoader.configFilePath(in: cwd) {
+            print("\((existing as NSString).lastPathComponent) already exists in this directory.")
             return
         }
 

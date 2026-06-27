@@ -14,7 +14,7 @@ enum XCError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .configNotFound:
-            "No xc.yaml found in the current directory. Create one with a 'commands' section to get started."
+            "No xc.yaml (or xc.yml) found in the current directory. Create one with a 'commands' section to get started."
         case .invalidConfig(let reason):
             "Invalid xc.yaml: \(reason)"
         case .unknownCommand(let name, let available):

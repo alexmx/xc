@@ -14,6 +14,18 @@ enum ConfigLoader {
         }
     }
 
+    /// Accepted project config filenames, in priority order (`xc.yaml` wins if both exist).
+    static let configFileNames = ["xc.yaml", "xc.yml"]
+
+    /// Path to the config file in `directory` (`xc.yaml` preferred over `xc.yml`), or nil if neither exists.
+    static func configFilePath(in directory: String) -> String? {
+        for name in configFileNames {
+            let path = directory + "/" + name
+            if FileManager.default.fileExists(atPath: path) { return path }
+        }
+        return nil
+    }
+
     static func load(from directory: String? = nil) throws -> LoadedConfig {
         let (projectConfig, projectRoot) = try loadProjectConfig(from: directory)
         try validate(projectConfig)
@@ -21,12 +33,11 @@ enum ConfigLoader {
         return LoadedConfig(project: projectConfig, global: globalConfig, projectRoot: projectRoot)
     }
 
-    /// Load the xc.yaml located exactly in `directory` (no walking up). Used for nested members,
-    /// so a member directory without its own xc.yaml is an error rather than silently resolving
+    /// Load the config located exactly in `directory` (no walking up). Used for nested members,
+    /// so a member directory without its own config is an error rather than silently resolving
     /// to the parent config.
     static func loadExact(from directory: String) throws -> LoadedConfig {
-        let path = directory + "/xc.yaml"
-        guard FileManager.default.fileExists(atPath: path) else {
+        guard let path = configFilePath(in: directory) else {
             throw XCError.configNotFound
         }
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
@@ -64,14 +75,14 @@ enum ConfigLoader {
         }
     }
 
-    /// Load xc.yaml, walking up from the given directory until found.
-    /// Returns the parsed config and the directory where xc.yaml was found.
+    /// Load the project config, walking up from the given directory until found.
+    /// Returns the parsed config and the directory where the config was found.
     static func loadProjectConfig(from directory: String? = nil) throws -> (ProjectConfig, String) {
         let startDir = directory ?? FileManager.default.currentDirectoryPath
-        guard let configDir = findConfigDirectory(from: startDir) else {
+        guard let configDir = findConfigDirectory(from: startDir),
+              let path = configFilePath(in: configDir) else {
             throw XCError.configNotFound
         }
-        let path = configDir + "/xc.yaml"
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let yaml = String(data: data, encoding: .utf8) ?? ""
         do {
@@ -82,12 +93,11 @@ enum ConfigLoader {
         }
     }
 
-    /// Walk up from `directory` looking for xc.yaml. Returns the directory containing it, or nil.
+    /// Walk up from `directory` looking for a config file. Returns the directory containing it, or nil.
     static func findConfigDirectory(from directory: String) -> String? {
         var current = directory
-        let fm = FileManager.default
         while true {
-            if fm.fileExists(atPath: current + "/xc.yaml") {
+            if configFilePath(in: current) != nil {
                 return current
             }
             let parent = (current as NSString).deletingLastPathComponent
@@ -130,9 +140,11 @@ enum ConfigLoader {
     }
 
     static func loadGlobalConfig() throws -> GlobalConfig? {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let path = home.appendingPathComponent(".config/xc/config.yaml").path
-        guard FileManager.default.fileExists(atPath: path) else {
+        let configDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/xc").path
+        let path = ["config.yaml", "config.yml"]
+            .map { configDir + "/" + $0 }
+            .first { FileManager.default.fileExists(atPath: $0) }
+        guard let path else {
             return nil
         }
         let data = try Data(contentsOf: URL(fileURLWithPath: path))

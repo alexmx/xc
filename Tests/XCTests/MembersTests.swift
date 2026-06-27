@@ -143,6 +143,44 @@ struct MembersTests {
 
     // MARK: - loadExact
 
+    // MARK: - .yml support
+
+    @Test("loadProjectConfig accepts xc.yml")
+    func loadProjectConfigYml() throws {
+        try withTempDirectory { dir in
+            let yaml = """
+            commands:
+              build: { run: "swift build" }
+            """
+            try yaml.write(toFile: dir + "/xc.yml", atomically: true, encoding: .utf8)
+            let (config, root) = try ConfigLoader.loadProjectConfig(from: dir)
+            #expect(config.commands?["build"]?.run == "swift build")
+            #expect(root == dir)
+        }
+    }
+
+    @Test("loadExact accepts xc.yml")
+    func loadExactYml() throws {
+        try withTempDirectory { dir in
+            try "commands: { test: { run: \"swift test\" } }".write(toFile: dir + "/xc.yml", atomically: true, encoding: .utf8)
+            let config = try ConfigLoader.loadExact(from: dir)
+            #expect(config.project.commands?["test"]?.run == "swift test")
+        }
+    }
+
+    @Test("xc.yaml wins when both xc.yaml and xc.yml exist")
+    func configFilePrefersYaml() throws {
+        try withTempDirectory { dir in
+            try "commands: { a: {} }".write(toFile: dir + "/xc.yaml", atomically: true, encoding: .utf8)
+            try "commands: { b: {} }".write(toFile: dir + "/xc.yml", atomically: true, encoding: .utf8)
+            let path = ConfigLoader.configFilePath(in: dir)
+            #expect(path == dir + "/xc.yaml")
+            let config = try ConfigLoader.loadExact(from: dir)
+            #expect(config.project.commands?["a"] != nil)
+            #expect(config.project.commands?["b"] == nil)
+        }
+    }
+
     @Test("loadExact loads a member's own xc.yaml")
     func loadExactLoadsMember() throws {
         try withTempDirectory { dir in

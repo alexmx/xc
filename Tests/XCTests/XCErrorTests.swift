@@ -6,7 +6,8 @@ struct XCErrorTests {
     @Test("configNotFound message")
     func configNotFound() {
         let error = XCError.configNotFound
-        #expect(error.errorDescription?.contains("No xc.yaml found") == true)
+        #expect(error.errorDescription?.contains("xc.yaml") == true)
+        #expect(error.errorDescription?.contains("xc.yml") == true)
         #expect(error.errorDescription?.contains("commands") == true)
     }
 
