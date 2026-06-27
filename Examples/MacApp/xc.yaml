@@ -30,13 +30,13 @@ commands:
         hooks: {}                              # disable the pre/post hooks
 
   test:
-    scheme: SampleMacAppTests
+    scheme: SampleMacApp
     destination:                               # test on native + Rosetta
       - mac
       - rosetta
     variants:
       core:
-        scheme: CoreTests
+        scheme: Core
       ci:
         result-bundle-path: "${RESULT_BUNDLE_PATH:-./build/tests.xcresult}"
         extra-args:
@@ -45,9 +45,9 @@ commands:
 
   # Compile the test bundle once, then re-run without rebuilding.
   build-for-testing:
-    scheme: SampleMacAppTests
+    scheme: SampleMacApp
   test-without-building:
-    scheme: SampleMacAppTests
+    scheme: SampleMacApp
 
   analyze: {}
 

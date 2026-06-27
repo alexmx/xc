@@ -48,13 +48,13 @@ commands:
         hooks: {}                           # `hooks: {}` disables inherited hooks
 
   test:
-    scheme: SampleAppTests
+    scheme: SampleApp
     destination:                            # a list runs tests on every destination
       - sim
       - sim-ipad
     variants:
       core:
-        scheme: CoreTests
+        scheme: Core
       plan:
         test-plan: SmokeTests               # requires a test plan wired into the scheme
       ci:
@@ -66,9 +66,9 @@ commands:
   # build-for-testing + test-without-building: compile once, then re-run tests
   # without recompiling (faster reruns, or split build/test across CI stages).
   build-for-testing:
-    scheme: SampleAppTests
+    scheme: SampleApp
   test-without-building:
-    scheme: SampleAppTests
+    scheme: SampleApp
 
   analyze: {}                               # → xcodebuild analyze
 
