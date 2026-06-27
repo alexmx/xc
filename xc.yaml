@@ -1,4 +1,4 @@
-# xc's own configuration — xc dogfooding itself.
+# xc's own configuration: xc dogfooding itself.
 #
 # The tool is a SwiftPM package, so its commands use the swift toolchain.
 # The example projects are registered as members, which exercises the monorepo

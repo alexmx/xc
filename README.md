@@ -1,12 +1,12 @@
 # xc
 
-**A better way to run xcodebuild. Stop typing flags. Start shipping.**
+**The task runner for Xcode projects.** Tame `xcodebuild` *and* run every project task (build, test, lint, codegen, release) from one `xc.yaml`.
 
 <p align="center">
 <img width="700" alt="hero" src="https://github.com/user-attachments/assets/57f2944d-2df2-4b89-9208-de01e9e5660e" />
 </p>
 
-That's it. No more copying 200-character `xcodebuild` invocations from your wiki. Define your commands once in `xc.yaml`, use them forever.
+Think `make` or `just`, but it natively understands schemes, destinations, SwiftPM packages, and xcodebuild.
 
 ```bash
 # Before
@@ -23,17 +23,13 @@ xc build:release
 
 ## Why xc?
 
-Built for fast, repeatable Xcode workflows.
+xc does two jobs in one tool:
 
-- **One config, shared by all**: Keep commands in `xc.yaml` so everyone runs the same builds.
-- **Variants over flags**: Use `build:release` or `test:coverage` instead of long flag strings.
-- **Named destinations**: Use `sim`, `mac`, or `device` aliases instead of full destination specs.
-- **Script support**: Run tools like `swiftlint` or `tuist generate` as first-class commands.
-- **Env var support**: Use `${VAR}` and `${VAR:-default}` to keep configs portable.
-- **Hooks built in**: Run pre/post steps for linting, setup, or notifications.
-- **Readable output**: Use xcbeautify by default, switch to raw logs with `--raw`.
+**Tames xcodebuild.** Short `build:release` / `test:ci` variants instead of flag strings, `sim`/`mac` aliases instead of destination specs, and readable xcbeautify output by default.
 
----
+**Runs your project tasks.** Wrap `swiftlint`, `swiftformat`, `tuist generate`, or any shell command as a first-class task, with the same variants, hooks, and `--dry-run` as a build. `xc list` is a self-documenting menu of every command in the repo.
+
+One `xc.yaml`, shared by the whole team, portable across machines and CI with `${VAR}` interpolation.
 
 ## Installation
 
@@ -43,23 +39,10 @@ Built for fast, repeatable Xcode workflows.
 brew install alexmx/tools/xc
 ```
 
-To update:
-
-```bash
-brew upgrade alexmx/tools/xc
-```
-
 ### Mise
 
 ```bash
 mise use --global github:alexmx/xc
-```
-
-Or in `mise.toml` for a project-scoped install:
-
-```toml
-[tools]
-"github:alexmx/xc" = "latest"
 ```
 
 ## Quick Start
@@ -74,64 +57,53 @@ xc build:release   # switch to release in one word
 xc doctor          # verify everything is set up correctly
 ```
 
-## The Config
+## Configuration
 
-`xc.yaml` at the root of your project:
+One `xc.yaml` at your project root defines every command, builds and tasks alike:
 
 ```yaml
 workspace: App.xcworkspace
 
-destinations:
+destinations:                          # short names for long -destination strings
   sim: "platform=iOS Simulator,name=${IOS_SIMULATOR:-iPhone 17 Pro}"
   mac: "platform=macOS"
 
-defaults:
+defaults:                              # applied to every command
   scheme: App
   configuration: Debug
   destination: sim
 
 commands:
   build:
-    hooks:
-      pre: "tuist generate"
+    hooks: { pre: "tuist generate" }   # a step to run before building
     variants:
-      release:
-        configuration: Release
-
+      release: { configuration: Release }
   test:
     scheme: AppTests
     variants:
       ci:
         result-bundle-path: "./build/tests.xcresult"
-        extra-args:
-          - "-enableCodeCoverage"
-          - "YES"
-
+        extra-args: ["-enableCodeCoverage", "YES"]
+  archive: { configuration: Release, archive-path: "./build/App.xcarchive" }
   clean: {}
-
-  archive:
-    configuration: Release
-    archive-path: "./build/App.xcarchive"
-
-  lint:
+  lint:                                # a `run:` field makes it a shell task
     run: "swiftlint lint --quiet"
     variants:
-      fix:
-        run: "swiftlint lint --fix"
+      fix: { run: "swiftlint lint --fix" }
 ```
 
-That config gives you:
+That single file gives you:
 
 ```bash
-xc build              # debug build (runs tuist generate first)
-xc build:release      # release build
-xc test               # run tests
-xc test:ci            # tests with coverage + result bundle
-xc archive            # create release archive
-xc clean              # clean build
-xc lint               # run swiftlint
-xc lint:fix           # autofix lint issues
+xc build           # debug build (runs tuist generate first)
+xc build:release   # release build
+xc test:ci         # tests with coverage + result bundle
+xc archive         # release archive
+xc lint:fix        # autofix lint
+xc list            # the whole catalog, self-documenting
 ```
+
+Commands without a `run:` field become `xcodebuild` invocations; commands with one are shell tasks. Both share variants, hooks, env vars, and the `xc list` catalog.
 
 ## CLI Reference
 
@@ -162,182 +134,90 @@ xc [<member>/]<command>[:<variant>] [options] [-- extra-xcodebuild-args...]
 
 ```bash
 xc test --dest mac                             # test on macOS
-xc build --verbose                             # see what xcodebuild gets
 xc build --dry-run                             # inspect without running
 xc test --raw -- -enableAddressSanitizer YES   # raw output + extra flags
-xc -C Packages/Core test                       # run in another directory's xc.yaml
-xc core/build:release                          # run a member's command
-xc test --all                                  # run `test` across all members
 ```
 
 ## Configuration Guide
 
-### Named Destinations
+### Variants
 
-Give short names to long destination strings:
+A variant inherits its command and overrides only what it names:
+
+```yaml
+commands:
+  build:
+    configuration: Debug
+    variants:
+      release: { configuration: Release }   # flip one field
+      core:    { scheme: Core }              # swap the scheme
+```
+
+### Named destinations
+
+Alias long `-destination` strings; pass a list to run several at once:
 
 ```yaml
 destinations:
   sim: "platform=iOS Simulator,name=iPhone 17 Pro"
-  sim-ipad: "platform=iOS Simulator,name=iPad Pro 13-inch (M5)"
   mac: "platform=macOS"
-
-defaults:
-  destination: sim
+commands:
+  test: { destination: [sim, mac] }   # test on both
 ```
 
-Test on multiple destinations at once:
+Run `xc destinations` to see what's installed.
+
+### Script commands
+
+A `run:` field runs shell instead of xcodebuild. That's what turns xc into a task runner. Script commands take variants, hooks, extra-args, and `--dry-run` like any build, and share the `xc list` catalog:
 
 ```yaml
 commands:
-  test:
-    destination:
-      - sim
-      - sim-ipad
+  generate: { run: "tuist generate" }
+  loc:      { run: "find Sources -name '*.swift' | xargs wc -l | tail -1" }
 ```
 
-Run `xc destinations` to see what's available on your machine.
+### Any xcodebuild action
 
-### Variants
-
-A variant inherits everything from its parent command and overrides only what it specifies:
+A command with no `run:` passes its name to `xcodebuild` as the action, so any action works, not just `build`/`test`/`clean`/`archive`:
 
 ```yaml
 commands:
-  build:
-    scheme: App
-    configuration: Debug
-    variants:
-      release:
-        configuration: Release    # only this changes
-      core:
-        scheme: Core              # different scheme, same config
+  build-for-testing: {}                          # compile once
+  test-without-building: { test-plan: Smoke }     # then re-run without rebuilding
+  analyze: {}
 ```
 
-```bash
-xc build          # scheme: App, configuration: Debug
-xc build:release  # scheme: App, configuration: Release
-xc build:core     # scheme: Core, configuration: Debug
-```
+### Swift packages
 
-### Command Names Are xcodebuild Actions
+A SwiftPM package has no `.xcodeproj`/`.xcworkspace`, so omit both `project` and `workspace` and xc drives the `Package.swift` in the current directory. Use `run: "swift build"` / `"swift test"` for the toolchain, or set `scheme:` + `destination:` to build the package with xcodebuild (for simulators or other platforms). See [`Examples/Package`](Examples/Package).
 
-A command's name is passed straight to `xcodebuild` as its action, so any xcodebuild action works — not just `build`, `test`, `clean`, and `archive`:
+### Monorepos & members
+
+Register nested projects as **members** of a root `xc.yaml` and drive them from the repo root. Each member stays a standalone `xc.yaml` that still works on its own:
 
 ```yaml
-commands:
-  build-for-testing: {}        # → xcodebuild build-for-testing ...
-  test-without-building:       # → xcodebuild test-without-building ... (no recompile)
-    test-plan: Smoke
-  analyze: {}                  # → xcodebuild analyze ...
-```
-
-Pair `build-for-testing` (compile once) with `test-without-building` (re-run the existing build) to skip recompilation on test reruns or split build and test across CI stages. Test-only options like `test-plan` still apply to `test-without-building`. Commands with a `run` field are shell scripts instead (see below).
-
-### Script Commands
-
-Add a `run` field to execute shell scripts instead of xcodebuild:
-
-```yaml
-commands:
-  generate:
-    run: "tuist generate"
-
-  lint:
-    run: "swiftlint lint --quiet"
-    variants:
-      fix:
-        run: "swiftlint lint --fix"
-
-  loc:
-    run: "find Sources -name '*.swift' | xargs wc -l | tail -1"
-```
-
-Scripts support hooks, variants, extra-args, and `--dry-run` like any other command.
-
-### Swift Packages
-
-A SwiftPM package has no `.xcodeproj` or `.xcworkspace` — just omit both `project` and `workspace`. xc then drives the `Package.swift` in the current directory. There are two ways to build a package:
-
-```yaml
-destinations:
-  mac: "platform=macOS"
-  sim: "platform=iOS Simulator,name=${IOS_SIMULATOR:-iPhone 17 Pro}"
-
-defaults:
-  scheme: MyPackage      # xcodebuild auto-generates a scheme named after the package
-  destination: mac
-
-commands:
-  # 1. swift toolchain — the native way, no scheme/destination needed
-  swift-build:
-    run: "swift build"
-  swift-test:
-    run: "swift test --parallel"
-
-  # 2. xcodebuild — build/test the package for a simulator or other platform
-  build:
-    variants:
-      ios: { destination: sim }
-  test:
-    variants:
-      ios: { destination: sim }
-```
-
-```bash
-xc swift-test       # swift test --parallel
-xc build            # xcodebuild build -scheme MyPackage -destination platform=macOS
-xc test:ios         # xcodebuild test  -scheme MyPackage -destination "platform=iOS Simulator,..."
-```
-
-See [`Examples/Package`](Examples/Package) for a complete runnable example.
-
-### Monorepos & Members
-
-In a repo with several projects (say a `Packages/` directory of SPM packages, each with its own `xc.yaml`), register them as **members** of a root `xc.yaml` and drive them all from the repo root:
-
-```yaml
-# repo-root/xc.yaml
 members:
   core: Packages/Core
   network: Packages/Network
-
-commands:
-  lint:
-    run: "swiftlint lint --quiet"   # the root can still have its own commands
 ```
-
-Each member stays a normal, standalone `xc.yaml` (it still works if you `cd` into it). There are three ways to use them:
 
 ```bash
-# 1. Run in any directory's xc.yaml (no registration needed) — like `cd dir && xc`
-xc -C Packages/Core test
-
-# 2. Address a registered member's command directly (runs with that member as cwd)
-xc core/build
-xc core/test:ci          # member `core`, command `test`, variant `ci`
-
-# 3. Fan out a command across members
-xc test --all            # run `test` in every member that defines it
-xc build --members core,network
-xc build --all --continue   # don't stop at the first failure
+xc -C Packages/Core test     # run in any directory's xc.yaml (no registration needed)
+xc core/build:release        # member/command:variant
+xc test --all                # fan out across members that define `test`
+xc build --all --continue    # don't stop at the first failure
 ```
 
-Fan-out runs sequentially in declared order, **skips** members that don't define the command, and stops at the first failure unless `--continue` is passed (then it reports which members failed at the end). `xc list` and `xc doctor` are member-aware — `list` shows each member's commands, `doctor` validates that each member's `xc.yaml` loads.
+Fan-out runs sequentially, skips members that don't define the command, and is fail-fast unless `--continue`. `xc list` and `xc doctor` are member-aware. Members are one level deep and inherit nothing from the root; use the [global config](#global-config) for cross-project defaults. See [`Examples/Monorepo`](Examples/Monorepo).
 
-Members are one level deep and inherit nothing from the root by default — for cross-project defaults, use the [global config](#global-config). See [`Examples/Monorepo`](Examples/Monorepo) for a complete runnable example.
+### Environment variables
 
-### Environment Variables
-
-Use `${VAR}` or `${VAR:-default}` anywhere in the config:
+`${VAR}` and `${VAR:-default}` expand anywhere in the config:
 
 ```yaml
 destinations:
   sim: "platform=iOS Simulator,name=${IOS_SIMULATOR:-iPhone 17 Pro}"
-
-commands:
-  archive:
-    archive-path: "${BUILD_DIR:-./build}/App.xcarchive"
 ```
 
 ```bash
@@ -346,83 +226,37 @@ IOS_SIMULATOR="iPhone SE" xc test   # override from env
 
 ### Hooks
 
-Run scripts before and after any command:
+`pre`/`post` shell steps on any command. A variant overrides them, or disables them with `hooks: {}`:
 
 ```yaml
 commands:
   build:
-    hooks:
-      pre: "swiftlint lint"
-      post: "say 'build complete'"
-    variants:
-      release:
-        hooks:
-          pre: "swiftlint lint --strict"   # overrides the command hooks
-      quick:
-        hooks: {}                          # disables hooks for this variant
+    hooks: { pre: "swiftlint lint", post: "say 'build complete'" }
 ```
 
-Hooks defined on a command run for all its variants. A variant can override hooks or disable them entirely with `hooks: {}`.
+### Resolution order
 
-### Resolution Order
+Settings layer most to least specific: **CLI flags → variant → command → project `defaults` → global config**.
 
-Settings layer from most to least specific:
+### Global config
 
-1. CLI flags (`--dest`, `-- extra-args`)
-2. Variant config
-3. Command config
-4. Project defaults (`defaults` in `xc.yaml`)
-5. Global defaults (`~/.config/xc/config.yaml`)
-
-### Global Config
-
-Shared defaults across all your projects at `~/.config/xc/config.yaml`:
+`~/.config/xc/config.yaml` holds cross-project `defaults` and `settings`:
 
 ```yaml
 defaults:
   destination: "platform=iOS Simulator,name=iPhone 17 Pro"
-
 settings:
-  formatter: xcbeautify
+  formatter: xcbeautify   # or "xcbeautify --disable-logging", xcpretty, raw
   verbose: false
 ```
 
-The `formatter` setting controls how xcodebuild output is processed. Any value is run as a shell command with xcodebuild output piped into it:
+`formatter` is any shell command xcodebuild output is piped through; `raw` (or `--raw` on a single run) disables it. A project `xc.yaml` can set its own `settings` block to override the global one.
 
-```yaml
-settings:
-  formatter: xcbeautify                              # default — auto-detected from PATH
-  formatter: "xcbeautify --disable-logging"           # custom flags
-  formatter: xcpretty                                # different tool
-  formatter: raw                                     # no formatting
-```
+### Config reference
 
-Use `--raw` on any command to skip formatting for a single invocation.
+**Root fields:** `project` *or* `workspace` (mutually exclusive), `destinations`, `defaults`, `commands` (required), `settings`, `members`.
 
-A `settings` block can also live in a project's `xc.yaml`, overriding the global config for that project:
-
-```yaml
-settings:
-  formatter: "xcbeautify --disable-logging"
-```
-
-### Config Reference
-
-**Root fields:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `project` | string | Path to `.xcodeproj` (mutually exclusive with `workspace`) |
-| `workspace` | string | Path to `.xcworkspace` |
-| `destinations` | map | Named destination aliases |
-| `defaults` | object | Default settings applied to all commands |
-| `commands` | map | Command definitions (required) |
-| `settings` | object | `formatter` / `verbose` (see [Global Config](#global-config)); set here to override per project |
-| `members` | map | Nested projects, `name: path` — addressable as `name/command` (see [Monorepos & Members](#monorepos--members)) |
-
-**Command fields:**
-
-| Field | Type | Description |
+| Command field | Type | Description |
 |-------|------|-------------|
 | `run` | string | Shell script (makes this a script command) |
 | `scheme` | string | Xcode scheme |
@@ -439,35 +273,28 @@ settings:
 
 ## Diagnostics
 
+`xc doctor` validates your setup; `xc list` prints the command catalog:
+
 ```
 $ xc doctor
   OK    xc.yaml
   OK    Workspace    App.xcworkspace
   OK    Scheme: App
-  OK    Scheme: AppTests
   OK    Dest: sim    iPhone 17 Pro
-  OK    Dest: mac    macOS
   OK    xcbeautify
-  OK    Global config    ~/.config/xc/config.yaml
-```
 
-```
 $ xc list
-  defaults     scheme: App, configuration: Debug, destination: sim
-
-  archive      configuration: Release, archive-path: ./build/App.xcarchive
   build
     :release   configuration: Release
-  clean
-  lint         $ swiftlint lint --quiet
-    :fix       $ swiftlint lint --fix
   test         scheme: AppTests
     :ci        result-bundle-path: ./build/tests.xcresult, extra-args: -enableCodeCoverage YES
+  lint         $ swiftlint lint --quiet
+    :fix       $ swiftlint lint --fix
 ```
 
 ## Use with AI agents
 
-A skill guide for agents driving xc via the CLI lives at [`skills/use-xc/SKILL.md`](skills/use-xc/SKILL.md). Install it with [Skillman](https://github.com/alexmx/skillman):
+A skill guide for agents driving xc lives at [`skills/use-xc/SKILL.md`](skills/use-xc/SKILL.md). Install it with [Skillman](https://github.com/alexmx/skillman):
 
 ```bash
 skillman install github.com/alexmx/xc

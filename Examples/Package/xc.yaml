@@ -1,4 +1,4 @@
-# xc configuration for SamplePackage — an ad-hoc Swift Package.
+# xc configuration for SamplePackage: an ad-hoc Swift Package.
 #
 # A SwiftPM package has no .xcodeproj/.xcworkspace: omit BOTH `project` and
 # `workspace` and xc drives the Package.swift in this directory. Two ways to
@@ -25,7 +25,7 @@ commands:
         run: "swift build -c release"
   swift-test:
     run: "swift test --parallel"
-  # `swift run` needs an executable product — uncomment for an executable package:
+  # `swift run` needs an executable product, uncomment for an executable package:
   # swift-run:
   #   run: "swift run"
 

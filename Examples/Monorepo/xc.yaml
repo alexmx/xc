@@ -8,4 +8,4 @@ members:
 commands:
   # A root-level command, run with plain `xc <command>` from the repo root.
   lint:
-    run: "swiftlint lint --quiet || echo '(swiftlint not installed — skipping)'"
+    run: "swiftlint lint --quiet || echo '(swiftlint not installed, skipping)'"

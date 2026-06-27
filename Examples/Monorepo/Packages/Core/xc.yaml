@@ -1,4 +1,4 @@
-# Member package: Core. Standalone — works with `cd Packages/Core && xc build`.
+# Member package: Core. Standalone, works with `cd Packages/Core && xc build`.
 defaults:
   scheme: Core
   destination: "platform=macOS"
