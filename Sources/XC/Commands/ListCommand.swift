@@ -59,6 +59,29 @@ struct ListCommand: ParsableCommand {
                 }
             }
         }
+
+        printMembers(config)
+    }
+
+    /// List nested member projects and the commands each one exposes (addressable as `member/command`).
+    static func printMembers(_ config: ConfigLoader.LoadedConfig) {
+        let members = config.project.members ?? [:]
+        guard !members.isEmpty else { return }
+
+        print()
+        print("members:")
+        for name in members.keys.sorted() {
+            let relative = members[name] ?? ""
+            guard let dir = ConfigLoader.memberDirectory(name, config: config.project, projectRoot: config.projectRoot) else { continue }
+
+            if let memberConfig = try? ConfigLoader.loadExact(from: dir) {
+                let commandNames = (memberConfig.project.commands ?? [:]).keys.sorted()
+                print("  \(name)  → \(relative)")
+                print("    \(commandNames.joined(separator: ", "))")
+            } else {
+                print("  \(name)  → \(relative)  (unavailable — run 'xc doctor')")
+            }
+        }
     }
 
     static func summarizeCommand(_ command: CommandConfig) -> String {

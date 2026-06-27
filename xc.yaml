@@ -1,0 +1,29 @@
+# xc's own configuration — xc dogfooding itself.
+#
+# The tool is a SwiftPM package, so its commands use the swift toolchain.
+# The example projects are registered as members, which exercises the monorepo
+# feature against this very repo:
+#
+#   xc build                 # build the xc tool
+#   xc test                  # run the test suite
+#   xc list                  # see commands + example members
+#   xc package/build         # build the Swift Package example
+#   xc -C Examples/Package swift-test
+#   xc build --all --dry-run # preview building every example member
+
+commands:
+  build:
+    run: "swift build"
+  test:
+    run: "swift test"
+  lint:
+    run: "swiftformat --lint Sources Tests"
+    variants:
+      fix:
+        run: "swiftformat Sources Tests"
+
+members:
+  app: Examples/App
+  mac: Examples/MacApp
+  package: Examples/Package
+  monorepo: Examples/Monorepo

@@ -1,0 +1,9 @@
+# Member package: Core. Standalone — works with `cd Packages/Core && xc build`.
+defaults:
+  scheme: Core
+  destination: "platform=macOS"
+commands:
+  build:
+    run: "swift build"
+  test:
+    run: "swift test"

@@ -1,0 +1,11 @@
+# Monorepo root: aggregates the member packages under Packages/.
+# Each member has its own standalone xc.yaml and is addressable as `member/command`.
+
+members:
+  core: Packages/Core
+  network: Packages/Network
+
+commands:
+  # A root-level command, run with plain `xc <command>` from the repo root.
+  lint:
+    run: "swiftlint lint --quiet || echo '(swiftlint not installed — skipping)'"

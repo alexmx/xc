@@ -71,7 +71,8 @@ extension ProjectConfig {
             destinations: destinations?.mapValues { $0.envExpanded },
             defaults: defaults?.expandingEnvVars(),
             commands: commands?.mapValues { $0.expandingEnvVars() },
-            settings: settings
+            settings: settings,
+            members: members?.mapValues { $0.envExpanded }
         )
     }
 }

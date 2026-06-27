@@ -21,6 +21,40 @@ enum ConfigLoader {
         return LoadedConfig(project: projectConfig, global: globalConfig, projectRoot: projectRoot)
     }
 
+    /// Load the xc.yaml located exactly in `directory` (no walking up). Used for nested members,
+    /// so a member directory without its own xc.yaml is an error rather than silently resolving
+    /// to the parent config.
+    static func loadExact(from directory: String) throws -> LoadedConfig {
+        let path = directory + "/xc.yaml"
+        guard FileManager.default.fileExists(atPath: path) else {
+            throw XCError.configNotFound
+        }
+        let data = try Data(contentsOf: URL(fileURLWithPath: path))
+        let yaml = String(data: data, encoding: .utf8) ?? ""
+        let projectConfig: ProjectConfig
+        do {
+            projectConfig = try YAMLDecoder().decode(ProjectConfig.self, from: yaml).expandingEnvVars()
+        } catch {
+            throw XCError.invalidConfig(Self.describeYAMLError(error))
+        }
+        try validate(projectConfig)
+        let globalConfig = try loadGlobalConfig()
+        return LoadedConfig(project: projectConfig, global: globalConfig, projectRoot: directory)
+    }
+
+    /// Member names declared in a config, sorted.
+    static func memberNames(_ config: ProjectConfig) -> [String] {
+        (config.members ?? [:]).keys.sorted()
+    }
+
+    /// Resolve a member name to its directory, joined relative to `projectRoot`.
+    /// Returns nil if the name isn't a declared member.
+    static func memberDirectory(_ name: String, config: ProjectConfig, projectRoot: String) -> String? {
+        guard let relative = config.members?[name] else { return nil }
+        if relative.hasPrefix("/") { return relative }
+        return (projectRoot as NSString).appendingPathComponent(relative)
+    }
+
     static func validate(_ config: ProjectConfig) throws {
         if config.project != nil && config.workspace != nil {
             throw XCError.invalidConfig("Both 'project' and 'workspace' are set. Use one or the other.")

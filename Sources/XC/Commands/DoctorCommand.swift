@@ -118,6 +118,22 @@ struct DoctorCommand: ParsableCommand {
             printCheck("Global config", status: .warn, detail: "Parse error: \(error.localizedDescription)")
         }
 
+        // 8. Check members (nested xc.yaml projects)
+        if let members = projectConfig.members, !members.isEmpty {
+            for name in members.keys.sorted() {
+                let relative = members[name] ?? ""
+                guard let dir = ConfigLoader.memberDirectory(name, config: projectConfig, projectRoot: projectRoot) else { continue }
+                do {
+                    _ = try ConfigLoader.loadExact(from: dir)
+                    printCheck("Member: \(name)", status: .ok, detail: relative)
+                } catch {
+                    let reason = (error as? XCError)?.errorDescription ?? error.localizedDescription
+                    printCheck("Member: \(name)", status: .fail, detail: "\(relative) — \(reason)")
+                    hasErrors = true
+                }
+            }
+        }
+
         if hasErrors {
             print()
             print("Some checks failed. Fix the issues above and run 'xc doctor' again.")

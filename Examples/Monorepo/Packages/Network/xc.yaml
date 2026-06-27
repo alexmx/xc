@@ -1,0 +1,7 @@
+# Member package: Network. Defines only `build` (no test target).
+defaults:
+  scheme: Network
+  destination: "platform=macOS"
+commands:
+  build:
+    run: "swift build"
