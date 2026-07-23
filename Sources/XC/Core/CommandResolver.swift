@@ -31,10 +31,17 @@ enum CommandResolver {
         let script = variantConfig?.run ?? commandConfig.run
         if let script {
             var fullScript = script
+            // Config-authored extraArgs are trusted (same authorship as the run string)
+            // and may intentionally use shell syntax, so they are appended verbatim.
             let scriptExtraArgs = variantConfig?.extraArgs ?? commandConfig.extraArgs ?? []
-            let allArgs = scriptExtraArgs + extraArgs
-            if !allArgs.isEmpty {
-                fullScript += " " + allArgs.joined(separator: " ")
+            if !scriptExtraArgs.isEmpty {
+                fullScript += " " + scriptExtraArgs.joined(separator: " ")
+            }
+            // CLI passthrough args (after `--`) are untrusted: the script runs via
+            // `/bin/sh -c`, so each arg must be shell-quoted or it gets re-parsed by
+            // the shell (breaking on metacharacters, and opening an injection surface).
+            if !extraArgs.isEmpty {
+                fullScript += " " + extraArgs.map(shellQuote).joined(separator: " ")
             }
             return ResolvedCommand(invocation: [], script: fullScript, hooks: hooks, formatter: formatter)
         }
@@ -121,6 +128,18 @@ enum CommandResolver {
 
     static func xcodebuildAction(for command: String) -> String {
         command
+    }
+
+    /// POSIX-quote an argument so it survives re-parsing by `/bin/sh -c`.
+    /// Shell-safe args are returned unchanged; anything else is wrapped in single
+    /// quotes with embedded quotes escaped as `'\''` (close quote, escaped quote, reopen).
+    static func shellQuote(_ arg: String) -> String {
+        guard !arg.isEmpty else { return "''" }
+        let safe = Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@%_-+=:,./")
+        if arg.allSatisfy({ safe.contains($0) }) {
+            return arg
+        }
+        return "'" + arg.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
     static func resolveDestinations(_ raw: OneOrMany?, destinations: [String: String]?) -> [String] {

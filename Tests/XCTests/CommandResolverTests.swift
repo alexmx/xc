@@ -910,6 +910,49 @@ struct CommandResolverTests {
         #expect(resolved.script == "swiftlint lint --fix")
     }
 
+    @Test("script passthrough args with shell metacharacters are quoted")
+    func scriptCommandPassthroughQuoting() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: ["review": CommandConfig(run: "./codechat review reply")]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "review",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: ["--body", "Addressed - switched to makeThing()."]
+        )
+
+        // The metacharacter-laden arg must be single-quoted so `sh -c` treats it
+        // as one literal token instead of parsing the "(".
+        #expect(resolved.script == "./codechat review reply --body 'Addressed - switched to makeThing().'")
+    }
+
+    @Test("script passthrough neutralizes injection and expansion")
+    func scriptCommandPassthroughInjection() throws {
+        let config = ConfigLoader.LoadedConfig(
+            project: ProjectConfig(
+                commands: ["run": CommandConfig(run: "./tool")]
+            ),
+            global: nil
+        )
+
+        let resolved = try CommandResolver.resolve(
+            commandName: "run",
+            variant: nil,
+            config: config,
+            destOverride: nil,
+            extraArgs: ["$HOME", "a; touch b", "it's", "`whoami`"]
+        )
+
+        // No unquoted $, ;, backtick, or apostrophe escapes into the shell string.
+        #expect(resolved.script == "./tool '$HOME' 'a; touch b' 'it'\\''s' '`whoami`'")
+    }
+
     @Test("script command variant overrides run")
     func scriptCommandVariant() throws {
         let config = ConfigLoader.LoadedConfig(
