@@ -5,6 +5,7 @@
 # feature against this very repo:
 #
 #   xc build                 # build the xc tool
+#   xc build:release         # the universal release binary the release workflow ships
 #   xc test                  # run the test suite
 #   xc list                  # see commands + example members
 #   xc package/build         # build the Swift Package example
@@ -15,6 +16,9 @@
 commands:
   build:
     run: "swift build"
+    variants:
+      release:
+        run: "swift build -c release --arch arm64 --arch x86_64"
   test:
     run: "swift test"
   lint:
