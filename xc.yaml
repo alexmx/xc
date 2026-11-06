@@ -12,6 +12,8 @@
 #   xc -C Examples/Package swift-test
 #   xc build --all --dry-run # preview building every example member
 #   xc gate                  # lint, build and test, with a timing summary
+#   xc smoke                 # end-to-end check of a release build against the examples
+#   xc smoke -- steps        # just one group (see scripts/smoke.py)
 
 commands:
   build:
@@ -28,6 +30,8 @@ commands:
         run: "swiftformat Sources Tests"
   gate:
     steps: [lint, build, test]
+  smoke:
+    run: 'swift build -c release && python3 -I scripts/smoke.py "$(swift build -c release --show-bin-path)/xc"'
 
 members:
   app: Examples/App
