@@ -68,13 +68,7 @@ enum CommandResolver {
 
         let action = commandName
 
-        var args = ["xcodebuild", action]
-
-        if let project = config.project.project {
-            args += ["-project", project]
-        } else if let workspace = config.project.workspace {
-            args += ["-workspace", workspace]
-        }
+        var args = ["xcodebuild", action] + config.project.containerArgs
 
         if let xcconfig {
             args += ["-xcconfig", xcconfig]

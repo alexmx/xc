@@ -176,13 +176,7 @@ struct DoctorCommand: AsyncParsableCommand {
     // MARK: - Queries
 
     func querySchemes(_ projectConfig: ProjectConfig, projectRoot: String) async -> [String]? {
-        var containerArgs: [String] = []
-        if let workspace = projectConfig.workspace {
-            containerArgs = ["-workspace", workspace]
-        } else if let project = projectConfig.project {
-            containerArgs = ["-project", project]
-        }
-        return await Schemes.list(containerArgs: containerArgs, in: projectRoot)
+        await Schemes.list(containerArgs: projectConfig.containerArgs, in: projectRoot)
     }
 
     func queryInstalledSimulatorNames() async -> Set<String> {

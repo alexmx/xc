@@ -208,4 +208,11 @@ struct ConfigLoaderTests {
 
         try ConfigLoader.validate(config)
     }
+
+    @Test("containerArgs select the project, else the workspace, else nothing")
+    func containerArgs() {
+        #expect(ProjectConfig(project: "App.xcodeproj").containerArgs == ["-project", "App.xcodeproj"])
+        #expect(ProjectConfig(workspace: "App.xcworkspace").containerArgs == ["-workspace", "App.xcworkspace"])
+        #expect(ProjectConfig().containerArgs.isEmpty)
+    }
 }

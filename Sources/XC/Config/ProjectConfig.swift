@@ -48,6 +48,19 @@ struct ProjectConfig: Codable, Sendable {
     var members: [String: String]?
 }
 
+extension ProjectConfig {
+    /// The xcodebuild arguments that select the project or workspace; empty for a package.
+    var containerArgs: [String] {
+        if let project {
+            return ["-project", project]
+        }
+        if let workspace {
+            return ["-workspace", workspace]
+        }
+        return []
+    }
+}
+
 struct CommandConfig: Codable, Sendable {
     var run: String?
     var scheme: String?
