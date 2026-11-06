@@ -68,7 +68,7 @@ enum CommandRunner {
     }
 
     /// Resolve the formatter command string.
-    /// - nil or "xcbeautify": use xcbeautify if installed (with --disable-logging)
+    /// - nil or "xcbeautify": use xcbeautify if installed, else no formatter
     /// - "raw": no formatter
     /// - anything else: use as a shell command
     static func resolveFormatter(_ formatter: String?) -> String? {
