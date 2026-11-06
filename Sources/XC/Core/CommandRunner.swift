@@ -3,9 +3,8 @@ import Subprocess
 import System
 
 enum CommandRunner {
-    /// Execute xcodebuild, optionally piping through a formatter.
-    /// - formatter: A shell command to pipe output through (e.g. "xcbeautify --quiet"),
-    ///   or nil/"raw" for no formatting. Defaults to xcbeautify if not specified.
+    /// Execute xcodebuild, piping its output through `formatter` (a shell command such as
+    /// "xcbeautify --quiet") when one is given. See `formatterCommand(for:)`.
     static func exec(
         args: [String],
         formatter: String? = nil,
@@ -18,7 +17,7 @@ enum CommandRunner {
         let directory = workingDirectory.map { FilePath($0) }
 
         let status: TerminationStatus
-        if let formatterCommand = resolveFormatter(formatter) {
+        if let formatter {
             // xcodebuild starts only once the formatter is running, so a formatter that
             // can't launch never leaves xcodebuild writing into an unread pipe. The write
             // end is handed to xcodebuild, closing with it so the formatter sees EOF.
@@ -33,7 +32,7 @@ enum CommandRunner {
             }
             let formatted = try await Subprocess.run(
                 .path("/bin/sh"),
-                arguments: ["-c", formatterCommand],
+                arguments: ["-c", formatter],
                 input: .fileDescriptor(pipe.readEnd, closeAfterSpawningProcess: true),
                 output: .currentStandardOutput,
                 error: .currentStandardError
@@ -67,12 +66,12 @@ enum CommandRunner {
         }
     }
 
-    /// Resolve the formatter command string.
-    /// - nil or "xcbeautify": use xcbeautify if installed, else no formatter
-    /// - "raw": no formatter
-    /// - anything else: use as a shell command
-    static func resolveFormatter(_ formatter: String?) -> String? {
-        let value = formatter ?? "xcbeautify"
+    /// The command for a `settings.formatter` value, or nil for no formatting:
+    /// - nil or "xcbeautify": xcbeautify if installed, else none
+    /// - "raw": none
+    /// - anything else: used as a shell command
+    static func formatterCommand(for configured: String?) -> String? {
+        let value = configured ?? "xcbeautify"
 
         if value == "raw" {
             return nil

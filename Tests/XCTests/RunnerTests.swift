@@ -66,7 +66,7 @@ struct RunnerTests {
     @Test("raw output reports the build's exit code")
     func rawExitCode() async {
         let message = await failure {
-            try await CommandRunner.exec(args: ["sh", "-c", "exit 2"], formatter: "raw")
+            try await CommandRunner.exec(args: ["sh", "-c", "exit 2"], formatter: nil)
         }
         #expect(message == XCError.buildFailed(2).errorDescription)
     }
@@ -76,7 +76,7 @@ struct RunnerTests {
         try await withTempDirectory { dir in
             try await CommandRunner.exec(
                 args: ["sh", "-c", "printf '%s' \"$XC_ROOT\" > root.txt"],
-                formatter: "raw",
+                formatter: nil,
                 workingDirectory: dir,
                 environment: ConfigLoader.environment(root: dir)
             )

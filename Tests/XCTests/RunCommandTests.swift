@@ -23,22 +23,16 @@ struct RunCommandTests {
         #expect(RunCommand.isVerbose(flag: flag, config: config(project: project, global: global)) == expected)
     }
 
-    @Test("--raw disables formatting even when none is configured")
-    func rawDisablesDefaultFormatter() {
-        let formatter = RunCommand.formatter(raw: true, configured: nil)
-        #expect(formatter == "raw")
-        #expect(CommandRunner.resolveFormatter(formatter) == nil)
+    @Test("--raw means no formatter, whatever is configured", arguments: [nil, "xcbeautify", "cat"])
+    func rawMeansNoFormatter(configured: String?) {
+        #expect(RunCommand.formatterCommand(raw: true, configured: configured) == nil)
     }
 
-    @Test("--raw overrides a configured formatter")
-    func rawOverridesConfiguredFormatter() {
-        #expect(RunCommand.formatter(raw: true, configured: "xcbeautify --quiet") == "raw")
-    }
-
-    @Test("without --raw the configured formatter is kept")
+    @Test("without --raw the configured formatter becomes its command")
     func configuredFormatterKept() {
-        #expect(RunCommand.formatter(raw: false, configured: "xcbeautify --quiet") == "xcbeautify --quiet")
-        #expect(RunCommand.formatter(raw: false, configured: nil) == nil)
+        #expect(RunCommand.formatterCommand(raw: false, configured: "xcbeautify --quiet") == "xcbeautify --quiet")
+        #expect(RunCommand.formatterCommand(raw: false, configured: "raw") == nil)
+        #expect(RunCommand.formatterCommand(raw: false, configured: nil) == CommandRunner.findInPath("xcbeautify"))
     }
 
     private func line(_ arguments: [String]) -> String {

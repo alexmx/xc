@@ -103,7 +103,7 @@ struct RunCommand: AsyncParsableCommand {
         case .xcodebuild(let arguments, let configuredFormatter):
             try await CommandRunner.exec(
                 args: arguments,
-                formatter: Self.formatter(raw: raw, configured: configuredFormatter),
+                formatter: Self.formatterCommand(raw: raw, configured: configuredFormatter),
                 workingDirectory: projectRoot,
                 environment: environment
             )
@@ -197,10 +197,10 @@ struct RunCommand: AsyncParsableCommand {
 
     // MARK: - Parsing helpers
 
-    /// The formatter to hand to `CommandRunner`. `--raw` must be the explicit "raw"
-    /// value: nil means "use the default", which is xcbeautify.
-    static func formatter(raw: Bool, configured: String?) -> String? {
-        raw ? "raw" : configured
+    /// The command to pipe xcodebuild output through, or nil: `--raw` turns formatting off
+    /// whatever `settings.formatter` says.
+    static func formatterCommand(raw: Bool, configured: String?) -> String? {
+        raw ? nil : CommandRunner.formatterCommand(for: configured)
     }
 
     /// `-v`, or `settings.verbose` (the project's overriding the global config's).

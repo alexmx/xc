@@ -3,28 +3,28 @@ import Testing
 
 @Suite("CommandRunner Tests")
 struct CommandRunnerTests {
-    @Test("resolveFormatter with raw returns nil")
-    func resolveFormatterRaw() {
-        let result = CommandRunner.resolveFormatter("raw")
+    @Test("formatterCommand with raw returns nil")
+    func formatterCommandRaw() {
+        let result = CommandRunner.formatterCommand(for: "raw")
         #expect(result == nil)
     }
 
-    @Test("resolveFormatter with custom command returns it as-is")
-    func resolveFormatterCustom() {
-        let result = CommandRunner.resolveFormatter("xcbeautify --disable-logging")
+    @Test("formatterCommand with custom command returns it as-is")
+    func formatterCommandCustom() {
+        let result = CommandRunner.formatterCommand(for: "xcbeautify --disable-logging")
         #expect(result == "xcbeautify --disable-logging")
     }
 
-    @Test("resolveFormatter with xcpretty returns it as-is")
-    func resolveFormatterXcpretty() {
-        let result = CommandRunner.resolveFormatter("xcpretty")
+    @Test("formatterCommand with xcpretty returns it as-is")
+    func formatterCommandXcpretty() {
+        let result = CommandRunner.formatterCommand(for: "xcpretty")
         #expect(result == "xcpretty")
     }
 
-    @Test("resolveFormatter nil and xcbeautify use same code path")
-    func resolveFormatterNilMatchesXcbeautify() {
-        let fromNil = CommandRunner.resolveFormatter(nil)
-        let fromExplicit = CommandRunner.resolveFormatter("xcbeautify")
+    @Test("formatterCommand nil and xcbeautify use same code path")
+    func formatterCommandNilMatchesXcbeautify() {
+        let fromNil = CommandRunner.formatterCommand(for: nil)
+        let fromExplicit = CommandRunner.formatterCommand(for: "xcbeautify")
         #expect(fromNil == fromExplicit)
     }
 

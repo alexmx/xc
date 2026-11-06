@@ -4,7 +4,7 @@ enum CommandResolver {
             /// A `run:` command, executed with `/bin/sh -c`.
             case script(String)
             /// An xcodebuild invocation (starting with "xcodebuild"); output is piped
-            /// through `formatter` (see `CommandRunner.resolveFormatter`).
+            /// through `formatter`, the `settings.formatter` value (see `CommandRunner.formatterCommand`).
             case xcodebuild(arguments: [String], formatter: String?)
         }
 
