@@ -150,16 +150,12 @@ struct DoctorCommand: AsyncParsableCommand {
 
     /// Each member has a loadable xc.yaml.
     static func memberChecks(_ config: ProjectConfig, projectRoot: String) -> [Check] {
-        ConfigLoader.memberNames(config).compactMap { name in
-            let relative = config.members?[name] ?? ""
-            guard let dir = ConfigLoader.memberDirectory(name, config: config, projectRoot: projectRoot) else {
-                return nil
-            }
+        ConfigLoader.members(of: config, root: projectRoot).map { member in
             do {
-                _ = try ConfigLoader.loadExact(from: dir)
-                return Check("Member: \(name)", .ok, relative)
+                _ = try ConfigLoader.loadExact(from: member.directory)
+                return Check("Member: \(member.name)", .ok, member.path)
             } catch {
-                return Check("Member: \(name)", .fail, "\(relative) — \(error.localizedDescription)")
+                return Check("Member: \(member.name)", .fail, "\(member.path) — \(error.localizedDescription)")
             }
         }
     }

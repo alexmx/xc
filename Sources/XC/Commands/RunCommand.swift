@@ -124,15 +124,12 @@ struct RunCommand: AsyncParsableCommand {
     // MARK: - Members
 
     private func loadMember(_ name: String, rootConfig: ConfigLoader.LoadedConfig) throws -> ConfigLoader.LoadedConfig {
-        guard let dir = ConfigLoader.memberDirectory(
-            name,
-            config: rootConfig.project,
-            projectRoot: rootConfig.projectRoot
-        ) else {
-            throw XCError.unknownMember(name, available: ConfigLoader.memberNames(rootConfig.project))
+        let members = ConfigLoader.members(of: rootConfig.project, root: rootConfig.projectRoot)
+        guard let member = members.first(where: { $0.name == name }) else {
+            throw XCError.unknownMember(name, available: members.map(\.name))
         }
         do {
-            return try ConfigLoader.loadExact(from: dir)
+            return try ConfigLoader.loadExact(from: member.directory)
         } catch {
             throw XCError.memberFailed(name, underlying: error.localizedDescription)
         }
@@ -140,7 +137,7 @@ struct RunCommand: AsyncParsableCommand {
 
     /// Run `ref` in each selected target, sequentially.
     private func runFanOut(_ ref: CommandRef, rootConfig: ConfigLoader.LoadedConfig) async throws {
-        let available = ConfigLoader.memberNames(rootConfig.project)
+        let available = ConfigLoader.members(of: rootConfig.project, root: rootConfig.projectRoot).map(\.name)
         guard !available.isEmpty else {
             throw XCError.invalidConfig("No members defined. Add a 'members' section to use --all/--members.")
         }

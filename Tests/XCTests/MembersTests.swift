@@ -52,31 +52,21 @@ struct MembersTests {
 
     // MARK: - ConfigLoader member helpers
 
-    @Test("memberNames are sorted")
-    func memberNamesSorted() {
+    @Test("members are sorted by name, relative paths joined under the root, absolute ones kept")
+    func members() {
         let config = ProjectConfig(
             commands: ["build": CommandConfig()],
-            members: ["network": "Packages/Network", "core": "Packages/Core"]
+            members: ["network": "Packages/Network", "core": "/abs/Core"]
         )
-        #expect(ConfigLoader.memberNames(config) == ["core", "network"])
+        #expect(ConfigLoader.members(of: config, root: "/repo") == [
+            ConfigLoader.Member(name: "core", path: "/abs/Core", directory: "/abs/Core"),
+            ConfigLoader.Member(name: "network", path: "Packages/Network", directory: "/repo/Packages/Network")
+        ])
     }
 
-    @Test("memberDirectory joins relative path under projectRoot")
-    func memberDirectoryRelative() {
-        let config = ProjectConfig(commands: ["build": CommandConfig()], members: ["core": "Packages/Core"])
-        #expect(ConfigLoader.memberDirectory("core", config: config, projectRoot: "/repo") == "/repo/Packages/Core")
-    }
-
-    @Test("memberDirectory keeps absolute paths as-is")
-    func memberDirectoryAbsolute() {
-        let config = ProjectConfig(commands: ["build": CommandConfig()], members: ["core": "/abs/Core"])
-        #expect(ConfigLoader.memberDirectory("core", config: config, projectRoot: "/repo") == "/abs/Core")
-    }
-
-    @Test("memberDirectory returns nil for unknown member")
-    func memberDirectoryUnknown() {
-        let config = ProjectConfig(commands: ["build": CommandConfig()], members: ["core": "Packages/Core"])
-        #expect(ConfigLoader.memberDirectory("ghost", config: config, projectRoot: "/repo") == nil)
+    @Test("a config without members has none")
+    func noMembers() {
+        #expect(ConfigLoader.members(of: ProjectConfig(commands: ["build": CommandConfig()]), root: "/repo").isEmpty)
     }
 
     // MARK: - Decoding

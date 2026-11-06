@@ -86,19 +86,21 @@ enum ConfigLoader {
         }
     }
 
-    /// Member names declared in a config, sorted.
-    static func memberNames(_ config: ProjectConfig) -> [String] {
-        (config.members ?? [:]).keys.sorted()
+    /// A nested project declared under `members`.
+    struct Member: Equatable {
+        let name: String
+        /// The path as written in xc.yaml.
+        let path: String
+        /// `path` resolved against the declaring project's root.
+        let directory: String
     }
 
-    /// Resolve a member name to its directory, joined relative to `projectRoot`.
-    /// Returns nil if the name isn't a declared member.
-    static func memberDirectory(_ name: String, config: ProjectConfig, projectRoot: String) -> String? {
-        guard let relative = config.members?[name] else { return nil }
-        if relative.hasPrefix("/") {
-            return relative
+    /// The members `config` declares, sorted by name. Relative paths are joined under `root`.
+    static func members(of config: ProjectConfig, root: String) -> [Member] {
+        (config.members ?? [:]).sorted { $0.key < $1.key }.map { name, path in
+            let directory = path.hasPrefix("/") ? path : (root as NSString).appendingPathComponent(path)
+            return Member(name: name, path: path, directory: directory)
         }
-        return (projectRoot as NSString).appendingPathComponent(relative)
     }
 
     static func validate(_ config: ProjectConfig) throws {
