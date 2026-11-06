@@ -139,7 +139,7 @@ struct RunCommand: AsyncParsableCommand {
         do {
             return try ConfigLoader.loadExact(from: dir)
         } catch {
-            throw XCError.memberFailed(name, underlying: Self.message(error))
+            throw XCError.memberFailed(name, underlying: error.localizedDescription)
         }
     }
 
@@ -164,7 +164,7 @@ struct RunCommand: AsyncParsableCommand {
             do {
                 config = isRoot ? rootConfig : try loadMember(target, rootConfig: rootConfig)
             } catch {
-                Self.announce("==> \(label): \(Self.message(error))")
+                Self.announce("==> \(label): \(error.localizedDescription)")
                 failed.append(label)
                 if !continueOnFailure {
                     throw XCError.fanOutFailed(failed)
@@ -184,7 +184,7 @@ struct RunCommand: AsyncParsableCommand {
             do {
                 try await execute(command, config: config)
             } catch {
-                Self.announce("✗ \(label): \(Self.message(error))")
+                Self.announce("✗ \(label): \(error.localizedDescription)")
                 failed.append(label)
                 if !continueOnFailure {
                     throw XCError.fanOutFailed(failed)
@@ -259,10 +259,6 @@ struct RunCommand: AsyncParsableCommand {
         }
         // Preserve the declared order, deduplicated.
         return available.filter { requested.contains($0) }
-    }
-
-    static func message(_ error: Error) -> String {
-        (error as? XCError)?.errorDescription ?? error.localizedDescription
     }
 
     /// Print a line and flush, so buffered Swift output stays ordered relative to child-process output.

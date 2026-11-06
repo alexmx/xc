@@ -55,4 +55,19 @@ struct XCErrorTests {
         #expect(message.contains("pre-build"))
         #expect(message.contains("1"))
     }
+
+    @Test("localizedDescription is the errorDescription, so callers need no XCError cast", arguments: [
+        XCError.configNotFound,
+        .invalidConfig("bad"),
+        .unknownCommand("x", available: ["a"]),
+        .unknownVariant("x", "y", available: []),
+        .unknownMember("m", available: ["a"]),
+        .memberFailed("m", underlying: "why"),
+        .fanOutFailed(["a"]),
+        .buildFailed(1),
+        .hookFailed("pre", 2)
+    ])
+    func localizedDescriptionMatches(error: XCError) {
+        #expect((error as Error).localizedDescription == error.errorDescription)
+    }
 }
