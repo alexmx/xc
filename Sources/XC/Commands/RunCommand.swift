@@ -208,16 +208,13 @@ struct RunCommand: AsyncParsableCommand {
         raw ? "raw" : configured
     }
 
-    /// What `--dry-run` and `-v` print for a resolved command.
+    /// What `--dry-run` and `-v` print for a resolved command: a line that pastes back
+    /// into a shell as the same command.
     static func commandLine(_ action: CommandResolver.ResolvedCommand.Action) -> String {
         switch action {
         case .script(let script): script
-        case .xcodebuild(let arguments, _): shellEscape(arguments)
+        case .xcodebuild(let arguments, _): arguments.map(CommandResolver.shellQuote).joined(separator: " ")
         }
-    }
-
-    static func shellEscape(_ args: [String]) -> String {
-        args.map { $0.contains(" ") ? "\"\($0)\"" : $0 }.joined(separator: " ")
     }
 
     /// Split "command:variant" into its parts. The first ":" separates them.

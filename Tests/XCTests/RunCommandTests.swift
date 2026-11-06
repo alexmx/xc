@@ -63,28 +63,32 @@ struct RunCommandTests {
         #expect(variant == "ci")
     }
 
-    @Test("shellEscape with simple args")
-    func shellEscapeSimple() {
-        let result = RunCommand.shellEscape(["xcodebuild", "build"])
-        #expect(result == "xcodebuild build")
+    private func line(_ arguments: [String]) -> String {
+        RunCommand.commandLine(.xcodebuild(arguments: arguments, formatter: nil))
     }
 
-    @Test("shellEscape quotes args with spaces")
-    func shellEscapeSpaces() {
-        let result = RunCommand.shellEscape(["-destination", "platform=iOS Simulator,name=iPhone 17 Pro"])
-        #expect(result == "-destination \"platform=iOS Simulator,name=iPhone 17 Pro\"")
+    @Test("commandLine leaves shell-safe args bare")
+    func commandLineSimple() {
+        #expect(line(["xcodebuild", "build", "-scheme", "App"]) == "xcodebuild build -scheme App")
     }
 
-    @Test("shellEscape with empty array")
-    func shellEscapeEmpty() {
-        let result = RunCommand.shellEscape([])
-        #expect(result == "")
+    @Test("commandLine single-quotes args with spaces")
+    func commandLineSpaces() {
+        #expect(line(["-destination", "platform=iOS Simulator,name=iPhone 17 Pro"])
+            == "-destination 'platform=iOS Simulator,name=iPhone 17 Pro'")
     }
 
-    @Test("shellEscape with mixed args")
-    func shellEscapeMixed() {
-        let result = RunCommand.shellEscape(["xcodebuild", "build", "-scheme", "My App"])
-        #expect(result == "xcodebuild build -scheme \"My App\"")
+    @Test("commandLine prints a script unchanged")
+    func commandLineScript() {
+        #expect(RunCommand.commandLine(.script("swiftlint lint | tee out")) == "swiftlint lint | tee out")
+    }
+
+    @Test("commandLine output pastes back into a shell as the same arguments")
+    func commandLineRoundTrip() async throws {
+        let arguments = ["OTHER_SWIFT_FLAGS=$(inherited) -DDEBUG", "a;b", "it's", "`whoami`", "*", "x&y", "\"q\"", ""]
+        let output = try #require(await Capture.output("/bin/sh", ["-c", "printf '%s\\n' " + line(arguments)]))
+        let printed = String(decoding: output, as: UTF8.self).split(separator: "\n", omittingEmptySubsequences: false)
+        #expect(printed.dropLast().map(String.init) == arguments)
     }
 }
 
