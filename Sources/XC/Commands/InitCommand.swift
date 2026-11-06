@@ -31,12 +31,11 @@ struct InitCommand: ParsableCommand {
 
         try yaml.write(toFile: configPath, atomically: true, encoding: .utf8)
 
-        let projectLabel: String
-        switch detection {
-        case .workspace(let name, _): projectLabel = "Workspace: \(name)"
-        case .project(let name, _): projectLabel = "Project: \(name)"
-        case .spm: projectLabel = "Swift Package"
-        case .none: projectLabel = "No project detected"
+        let projectLabel = switch detection {
+        case .workspace(let name, _): "Workspace: \(name)"
+        case .project(let name, _): "Project: \(name)"
+        case .spm: "Swift Package"
+        case .none: "No project detected"
         }
 
         print("Created xc.yaml")
@@ -220,10 +219,9 @@ struct InitCommand: ParsableCommand {
     static func pickPrimaryScheme(schemes: [String], detection: ProjectType) -> String? {
         guard !schemes.isEmpty else { return nil }
 
-        let projectName: String?
-        switch detection {
-        case .workspace(let name, _), .project(let name, _): projectName = name
-        case .spm, .none: projectName = nil
+        let projectName: String? = switch detection {
+        case .workspace(let name, _), .project(let name, _): name
+        case .spm, .none: nil
         }
 
         if let name = projectName, schemes.contains(name) {

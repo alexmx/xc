@@ -8,3 +8,5 @@
 --trim-whitespace nonblank-lines
 --self init-only
 --ifdef no-indent
+--swift-version 6.2
+--test-case-name-format preserve

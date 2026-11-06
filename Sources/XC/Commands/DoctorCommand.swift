@@ -122,7 +122,8 @@ struct DoctorCommand: ParsableCommand {
         if let members = projectConfig.members, !members.isEmpty {
             for name in members.keys.sorted() {
                 let relative = members[name] ?? ""
-                guard let dir = ConfigLoader.memberDirectory(name, config: projectConfig, projectRoot: projectRoot) else { continue }
+                guard let dir = ConfigLoader.memberDirectory(name, config: projectConfig, projectRoot: projectRoot)
+                else { continue }
                 do {
                     _ = try ConfigLoader.loadExact(from: dir)
                     printCheck("Member: \(name)", status: .ok, detail: relative)
@@ -239,11 +240,17 @@ struct DoctorCommand: ParsableCommand {
     /// Collect all scheme names referenced in defaults + commands + variants.
     static func collectSchemes(from config: ProjectConfig) -> Set<String> {
         var schemes = Set<String>()
-        if let s = config.defaults?.scheme { schemes.insert(s) }
+        if let s = config.defaults?.scheme {
+            schemes.insert(s)
+        }
         for (_, cmd) in config.commands ?? [:] {
-            if let s = cmd.scheme { schemes.insert(s) }
+            if let s = cmd.scheme {
+                schemes.insert(s)
+            }
             for (_, variant) in cmd.variants ?? [:] {
-                if let s = variant.scheme { schemes.insert(s) }
+                if let s = variant.scheme {
+                    schemes.insert(s)
+                }
             }
         }
         return schemes

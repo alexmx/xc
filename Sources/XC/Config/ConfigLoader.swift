@@ -44,7 +44,9 @@ enum ConfigLoader {
     static func configFilePath(in directory: String) -> String? {
         for name in configFileNames {
             let path = directory + "/" + name
-            if FileManager.default.fileExists(atPath: path) { return path }
+            if FileManager.default.fileExists(atPath: path) {
+                return path
+            }
         }
         return nil
     }
@@ -87,7 +89,9 @@ enum ConfigLoader {
     /// Returns nil if the name isn't a declared member.
     static func memberDirectory(_ name: String, config: ProjectConfig, projectRoot: String) -> String? {
         guard let relative = config.members?[name] else { return nil }
-        if relative.hasPrefix("/") { return relative }
+        if relative.hasPrefix("/") {
+            return relative
+        }
         return (projectRoot as NSString).appendingPathComponent(relative)
     }
 

@@ -17,7 +17,7 @@ commands:
   test:
     run: "swift test"
   lint:
-    run: "swiftformat --lint Sources Tests"
+    run: "swiftformat Sources Tests --lint"
     variants:
       fix:
         run: "swiftformat Sources Tests"

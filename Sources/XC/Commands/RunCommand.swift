@@ -129,7 +129,11 @@ struct RunCommand: AsyncParsableCommand {
     // MARK: - Members
 
     private func loadMember(_ name: String, rootConfig: ConfigLoader.LoadedConfig) throws -> ConfigLoader.LoadedConfig {
-        guard let dir = ConfigLoader.memberDirectory(name, config: rootConfig.project, projectRoot: rootConfig.projectRoot) else {
+        guard let dir = ConfigLoader.memberDirectory(
+            name,
+            config: rootConfig.project,
+            projectRoot: rootConfig.projectRoot
+        ) else {
             throw XCError.unknownMember(name, available: ConfigLoader.memberNames(rootConfig.project))
         }
         do {
@@ -162,7 +166,9 @@ struct RunCommand: AsyncParsableCommand {
             } catch {
                 Self.announce("==> \(label): \(Self.message(error))")
                 failed.append(label)
-                if !continueOnFailure { throw XCError.fanOutFailed(failed) }
+                if !continueOnFailure {
+                    throw XCError.fanOutFailed(failed)
+                }
                 continue
             }
 
@@ -180,12 +186,18 @@ struct RunCommand: AsyncParsableCommand {
             } catch {
                 Self.announce("✗ \(label): \(Self.message(error))")
                 failed.append(label)
-                if !continueOnFailure { throw XCError.fanOutFailed(failed) }
+                if !continueOnFailure {
+                    throw XCError.fanOutFailed(failed)
+                }
             }
         }
 
-        if !failed.isEmpty { throw XCError.fanOutFailed(failed) }
-        if ran == 0 { print("No selected target defines '\(commandName)'.") }
+        if !failed.isEmpty {
+            throw XCError.fanOutFailed(failed)
+        }
+        if ran == 0 {
+            print("No selected target defines '\(commandName)'.")
+        }
     }
 
     // MARK: - Parsing helpers

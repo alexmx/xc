@@ -72,7 +72,8 @@ struct ListCommand: ParsableCommand {
         print("members:")
         for name in members.keys.sorted() {
             let relative = members[name] ?? ""
-            guard let dir = ConfigLoader.memberDirectory(name, config: config.project, projectRoot: config.projectRoot) else { continue }
+            guard let dir = ConfigLoader.memberDirectory(name, config: config.project, projectRoot: config.projectRoot)
+            else { continue }
 
             if let memberConfig = try? ConfigLoader.loadExact(from: dir) {
                 let commandNames = (memberConfig.project.commands ?? [:]).keys.sorted()

@@ -1,7 +1,7 @@
 import Foundation
 import Testing
-import Yams
 @testable import xc
+import Yams
 
 @Suite("Members Tests")
 struct MembersTests {
@@ -52,7 +52,11 @@ struct MembersTests {
 
     @Test("selectMembers with list filters and preserves declared order")
     func selectMembersList() throws {
-        let result = try RunCommand.selectMembers(all: false, list: "network,core", available: ["core", "network", "ui"])
+        let result = try RunCommand.selectMembers(
+            all: false,
+            list: "network,core",
+            available: ["core", "network", "ui"]
+        )
         #expect(result == ["core", "network"])
     }
 
@@ -87,7 +91,10 @@ struct MembersTests {
 
     @Test("memberNames are sorted")
     func memberNamesSorted() {
-        let config = ProjectConfig(commands: ["build": CommandConfig()], members: ["network": "Packages/Network", "core": "Packages/Core"])
+        let config = ProjectConfig(
+            commands: ["build": CommandConfig()],
+            members: ["network": "Packages/Network", "core": "Packages/Core"]
+        )
         #expect(ConfigLoader.memberNames(config) == ["core", "network"])
     }
 
@@ -162,7 +169,11 @@ struct MembersTests {
     @Test("loadExact accepts xc.yml")
     func loadExactYml() throws {
         try withTempDirectory { dir in
-            try "commands: { test: { run: \"swift test\" } }".write(toFile: dir + "/xc.yml", atomically: true, encoding: .utf8)
+            try "commands: { test: { run: \"swift test\" } }".write(
+                toFile: dir + "/xc.yml",
+                atomically: true,
+                encoding: .utf8
+            )
             let config = try ConfigLoader.loadExact(from: dir)
             #expect(config.project.commands?["test"]?.run == "swift test")
         }

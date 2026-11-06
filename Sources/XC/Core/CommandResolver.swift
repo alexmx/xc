@@ -102,18 +102,30 @@ enum CommandResolver {
             args += ["-workspace", workspace]
         }
 
-        if let xcconfig { args += ["-xcconfig", xcconfig] }
-        if let scheme { args += ["-scheme", scheme] }
-        if let configuration { args += ["-configuration", configuration] }
+        if let xcconfig {
+            args += ["-xcconfig", xcconfig]
+        }
+        if let scheme {
+            args += ["-scheme", scheme]
+        }
+        if let configuration {
+            args += ["-configuration", configuration]
+        }
         for dest in resolvedDests {
             args += ["-destination", dest]
         }
 
-        if let derivedDataPath { args += ["-derivedDataPath", derivedDataPath] }
+        if let derivedDataPath {
+            args += ["-derivedDataPath", derivedDataPath]
+        }
 
         if action == "test" || action == "test-without-building" {
-            if let testPlan { args += ["-testPlan", testPlan] }
-            if let resultBundlePath { args += ["-resultBundlePath", resultBundlePath] }
+            if let testPlan {
+                args += ["-testPlan", testPlan]
+            }
+            if let resultBundlePath {
+                args += ["-resultBundlePath", resultBundlePath]
+            }
         }
 
         if let archivePath, action == "archive" {
