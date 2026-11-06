@@ -4,10 +4,18 @@ enum CommandRunner {
     /// Execute xcodebuild, optionally piping through a formatter.
     /// - formatter: A shell command to pipe output through (e.g. "xcbeautify --quiet"),
     ///   or nil/​"raw" for no formatting. Defaults to xcbeautify if not specified.
-    static func exec(args: [String], formatter: String? = nil, workingDirectory: String? = nil) throws {
+    static func exec(
+        args: [String],
+        formatter: String? = nil,
+        workingDirectory: String? = nil,
+        environment: [String: String]? = nil
+    ) throws {
         let xcodebuild = Process()
         xcodebuild.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         xcodebuild.arguments = args
+        if let environment {
+            xcodebuild.environment = environment
+        }
         if let workingDirectory {
             xcodebuild.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
         }

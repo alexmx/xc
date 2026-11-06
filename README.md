@@ -224,6 +224,19 @@ destinations:
 IOS_SIMULATOR="iPhone SE" xc test   # override from env
 ```
 
+`${XC_ROOT}` is built in: the absolute path of the folder holding the `xc.yaml` being run (a member's own folder inside a member), wherever xc was started from. Use it for paths that must be absolute, such as `SYMROOT` for a Swift package, which resolves relative paths against its own folder:
+
+```yaml
+commands:
+  build:
+    variants:
+      release:
+        configuration: Release
+        extra-args: ["SYMROOT=${XC_ROOT}/Build"]
+```
+
+`XC_ROOT` is also exported to xcodebuild, `run:` scripts and hooks, and it overrides any `XC_ROOT` already in the environment. xcodebuild commands run without a shell, so `extra-args` reach xcodebuild as-is; use `${XC_ROOT}` rather than `$PWD`, which is wherever xc was started.
+
 ### Hooks
 
 `pre`/`post` shell steps on any command. A variant overrides them, or disables them with `hooks: {}`:

@@ -77,6 +77,7 @@ struct RunCommand: AsyncParsableCommand {
         )
 
         let projectRoot = config.projectRoot
+        let environment = config.environment
 
         if dryRun {
             print(resolved.script ?? Self.shellEscape(resolved.invocation))
@@ -84,7 +85,12 @@ struct RunCommand: AsyncParsableCommand {
         }
 
         if let preHook = resolved.hooks?.pre {
-            try HookRunner.run(preHook, label: "pre-\(commandName)", workingDirectory: projectRoot)
+            try HookRunner.run(
+                preHook,
+                label: "pre-\(commandName)",
+                workingDirectory: projectRoot,
+                environment: environment
+            )
         }
 
         if verbose {
@@ -93,14 +99,30 @@ struct RunCommand: AsyncParsableCommand {
         }
 
         if let script = resolved.script {
-            try HookRunner.run(script, label: commandName, workingDirectory: projectRoot, quiet: true)
+            try HookRunner.run(
+                script,
+                label: commandName,
+                workingDirectory: projectRoot,
+                quiet: true,
+                environment: environment
+            )
         } else {
             let formatter = Self.formatter(raw: raw, configured: resolved.formatter)
-            try CommandRunner.exec(args: resolved.invocation, formatter: formatter, workingDirectory: projectRoot)
+            try CommandRunner.exec(
+                args: resolved.invocation,
+                formatter: formatter,
+                workingDirectory: projectRoot,
+                environment: environment
+            )
         }
 
         if let postHook = resolved.hooks?.post {
-            try HookRunner.run(postHook, label: "post-\(commandName)", workingDirectory: projectRoot)
+            try HookRunner.run(
+                postHook,
+                label: "post-\(commandName)",
+                workingDirectory: projectRoot,
+                environment: environment
+            )
         }
     }
 

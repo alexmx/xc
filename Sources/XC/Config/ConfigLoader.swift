@@ -12,6 +12,29 @@ enum ConfigLoader {
             self.global = global
             self.projectRoot = projectRoot
         }
+
+        /// The environment commands run with: the inherited one plus `XC_ROOT`.
+        var environment: [String: String] {
+            ConfigLoader.environment(root: projectRoot)
+        }
+    }
+
+    /// The inherited environment with `XC_ROOT` set to `root`. The built-in value wins
+    /// over an inherited `XC_ROOT`, so a stale export can't point a build elsewhere.
+    static func environment(
+        root: String,
+        base: [String: String] = ProcessInfo.processInfo.environment
+    ) -> [String: String] {
+        base.merging(["XC_ROOT": root]) { _, builtin in builtin }
+    }
+
+    /// Resolve `path` against the current directory. `XC_ROOT` must be absolute, since
+    /// xcodebuild and SwiftPM resolve relative paths against different folders.
+    static func absolutePath(_ path: String) -> String {
+        guard !path.hasPrefix("/") else { return path }
+        // URL.standardized only collapses "." and "..", unlike standardizingPath,
+        // which also drops a leading /private and so changes the reported root.
+        return URL(fileURLWithPath: path).standardized.path
     }
 
     /// Accepted project config filenames, in priority order (`xc.yaml` wins if both exist).
@@ -37,6 +60,7 @@ enum ConfigLoader {
     /// so a member directory without its own config is an error rather than silently resolving
     /// to the parent config.
     static func loadExact(from directory: String) throws -> LoadedConfig {
+        let directory = absolutePath(directory)
         guard let path = configFilePath(in: directory) else {
             throw XCError.configNotFound
         }
@@ -44,7 +68,8 @@ enum ConfigLoader {
         let yaml = String(data: data, encoding: .utf8) ?? ""
         let projectConfig: ProjectConfig
         do {
-            projectConfig = try YAMLDecoder().decode(ProjectConfig.self, from: yaml).expandingEnvVars()
+            projectConfig = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
+                .expandingEnvVars(environment(root: directory))
         } catch {
             throw XCError.invalidConfig(Self.describeYAMLError(error))
         }
@@ -78,7 +103,7 @@ enum ConfigLoader {
     /// Load the project config, walking up from the given directory until found.
     /// Returns the parsed config and the directory where the config was found.
     static func loadProjectConfig(from directory: String? = nil) throws -> (ProjectConfig, String) {
-        let startDir = directory ?? FileManager.default.currentDirectoryPath
+        let startDir = absolutePath(directory ?? FileManager.default.currentDirectoryPath)
         guard let configDir = findConfigDirectory(from: startDir),
               let path = configFilePath(in: configDir) else {
             throw XCError.configNotFound
@@ -87,7 +112,7 @@ enum ConfigLoader {
         let yaml = String(data: data, encoding: .utf8) ?? ""
         do {
             let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
-            return (config.expandingEnvVars(), configDir)
+            return (config.expandingEnvVars(environment(root: configDir)), configDir)
         } catch {
             throw XCError.invalidConfig(Self.describeYAMLError(error))
         }

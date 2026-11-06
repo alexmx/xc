@@ -3,7 +3,10 @@ import Foundation
 enum EnvExpander {
     /// Expand `${VAR}` and `${VAR:-default}` patterns in a string.
     /// Only the `${}` syntax is supported — bare `$VAR` is not expanded.
-    static func expand(_ string: String) -> String {
+    static func expand(
+        _ string: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> String {
         var result = ""
         var remaining = string[...]
 
@@ -30,7 +33,7 @@ enum EnvExpander {
             let content = String(remaining[afterBrace..<closingBrace])
             let (varName, defaultValue) = parseVarExpression(content)
 
-            if let envValue = ProcessInfo.processInfo.environment[varName], !envValue.isEmpty {
+            if let envValue = environment[varName], !envValue.isEmpty {
                 result += envValue
             } else if let defaultValue {
                 result += defaultValue
@@ -58,55 +61,55 @@ enum EnvExpander {
 // MARK: - Config expansion
 
 extension String {
-    var envExpanded: String {
-        EnvExpander.expand(self)
+    func envExpanded(_ env: [String: String]) -> String {
+        EnvExpander.expand(self, environment: env)
     }
 }
 
 extension ProjectConfig {
-    func expandingEnvVars() -> ProjectConfig {
+    func expandingEnvVars(_ env: [String: String] = ProcessInfo.processInfo.environment) -> ProjectConfig {
         ProjectConfig(
-            project: project?.envExpanded,
-            workspace: workspace?.envExpanded,
-            destinations: destinations?.mapValues { $0.envExpanded },
-            defaults: defaults?.expandingEnvVars(),
-            commands: commands?.mapValues { $0.expandingEnvVars() },
+            project: project?.envExpanded(env),
+            workspace: workspace?.envExpanded(env),
+            destinations: destinations?.mapValues { $0.envExpanded(env) },
+            defaults: defaults?.expandingEnvVars(env),
+            commands: commands?.mapValues { $0.expandingEnvVars(env) },
             settings: settings,
-            members: members?.mapValues { $0.envExpanded }
+            members: members?.mapValues { $0.envExpanded(env) }
         )
     }
 }
 
 extension CommandConfig {
-    func expandingEnvVars() -> CommandConfig {
+    func expandingEnvVars(_ env: [String: String] = ProcessInfo.processInfo.environment) -> CommandConfig {
         CommandConfig(
-            run: run?.envExpanded,
-            scheme: scheme?.envExpanded,
-            configuration: configuration?.envExpanded,
-            destination: destination?.expandingEnvVars(),
-            testPlan: testPlan?.envExpanded,
-            resultBundlePath: resultBundlePath?.envExpanded,
-            xcconfig: xcconfig?.envExpanded,
-            derivedDataPath: derivedDataPath?.envExpanded,
-            archivePath: archivePath?.envExpanded,
-            extraArgs: extraArgs?.map { $0.envExpanded },
-            hooks: hooks?.expandingEnvVars(),
-            variants: variants?.mapValues { $0.expandingEnvVars() }
+            run: run?.envExpanded(env),
+            scheme: scheme?.envExpanded(env),
+            configuration: configuration?.envExpanded(env),
+            destination: destination?.expandingEnvVars(env),
+            testPlan: testPlan?.envExpanded(env),
+            resultBundlePath: resultBundlePath?.envExpanded(env),
+            xcconfig: xcconfig?.envExpanded(env),
+            derivedDataPath: derivedDataPath?.envExpanded(env),
+            archivePath: archivePath?.envExpanded(env),
+            extraArgs: extraArgs?.map { $0.envExpanded(env) },
+            hooks: hooks?.expandingEnvVars(env),
+            variants: variants?.mapValues { $0.expandingEnvVars(env) }
         )
     }
 }
 
 extension OneOrMany {
-    func expandingEnvVars() -> OneOrMany {
-        OneOrMany(values.map { $0.envExpanded })
+    func expandingEnvVars(_ env: [String: String]) -> OneOrMany {
+        OneOrMany(values.map { $0.envExpanded(env) })
     }
 }
 
 extension HookConfig {
-    func expandingEnvVars() -> HookConfig {
+    func expandingEnvVars(_ env: [String: String] = ProcessInfo.processInfo.environment) -> HookConfig {
         HookConfig(
-            pre: pre?.envExpanded,
-            post: post?.envExpanded
+            pre: pre?.envExpanded(env),
+            post: post?.envExpanded(env)
         )
     }
 }

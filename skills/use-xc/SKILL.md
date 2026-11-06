@@ -119,7 +119,7 @@ settings:                           # optional; also valid in global config
 - **Command fields**: `run`, `scheme`, `configuration`, `destination` (string or list), `xcconfig`, `test-plan`, `result-bundle-path`, `derived-data-path`, `archive-path`, `extra-args` (list), `hooks` (`pre`/`post`), `variants`.
 - **Command name = xcodebuild action** (unless `run:`): `build`/`test`/`clean`/`archive`, plus `build-for-testing`, `test-without-building` (`-testPlan` applies), `analyze`, etc. Pair build-for-testing (compile once) + test-without-building (fast reruns).
 - **`run:` commands**: plain shell (lint/format/codegen); support hooks, variants, `extra-args`, `--dry-run`.
-- **Env vars**: `${VAR}` / `${VAR:-default}` anywhere.
+- **Env vars**: `${VAR}` / `${VAR:-default}` anywhere. Built-in `${XC_ROOT}` = absolute dir of the `xc.yaml` being run (a member's own dir in a member), also exported to xcodebuild, scripts and hooks. Use it for absolute paths (e.g. `SYMROOT=${XC_ROOT}/Build`), not `$PWD`.
 - **Hooks**: a command's hooks run for all its variants; a variant overrides them or disables with `hooks: {}`.
 - **`settings`** (`formatter`, `verbose`): project `xc.yaml` or global config. `formatter` = shell command output is piped through: `xcbeautify` (default), `xcpretty`, `raw`, or with flags.
 - **Swift package** (no `.xcodeproj`/`.xcworkspace`): omit both `project` and `workspace`. Drive via `run:` swift scripts, or xcodebuild against the auto-generated scheme (named after the package) with `scheme:`+`destination:`.
