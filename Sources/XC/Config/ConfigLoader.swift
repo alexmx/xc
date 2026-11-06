@@ -54,7 +54,7 @@ enum ConfigLoader {
     static func load(from directory: String? = nil) throws -> LoadedConfig {
         let (projectConfig, projectRoot) = try loadProjectConfig(from: directory)
         try validate(projectConfig)
-        let globalConfig = try loadGlobalConfig()
+        let globalConfig = try loadGlobalConfig(environment: environment(root: projectRoot))
         return LoadedConfig(project: projectConfig, global: globalConfig, projectRoot: projectRoot)
     }
 
@@ -70,13 +70,12 @@ enum ConfigLoader {
         let yaml = String(data: data, encoding: .utf8) ?? ""
         let projectConfig: ProjectConfig
         do {
-            projectConfig = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
-                .expandingEnvVars(environment(root: directory))
+            projectConfig = try decode(ProjectConfig.self, yaml: yaml, environment: environment(root: directory))
         } catch {
             throw XCError.invalidConfig(Self.describeYAMLError(error))
         }
         try validate(projectConfig)
-        let globalConfig = try loadGlobalConfig()
+        let globalConfig = try loadGlobalConfig(environment: environment(root: directory))
         return LoadedConfig(project: projectConfig, global: globalConfig, projectRoot: directory)
     }
 
@@ -115,8 +114,8 @@ enum ConfigLoader {
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let yaml = String(data: data, encoding: .utf8) ?? ""
         do {
-            let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml)
-            return (config.expandingEnvVars(environment(root: configDir)), configDir)
+            let config = try decode(ProjectConfig.self, yaml: yaml, environment: environment(root: configDir))
+            return (config, configDir)
         } catch {
             throw XCError.invalidConfig(Self.describeYAMLError(error))
         }
@@ -168,7 +167,21 @@ enum ConfigLoader {
         return error.localizedDescription
     }
 
-    static func loadGlobalConfig() throws -> GlobalConfig? {
+    /// Decode `yaml` as `type`, expanding `${VAR}` in its values (not keys) first.
+    /// Parses the way `YAMLDecoder.decode(_:from: String)` does, so merge keys keep working.
+    static func decode<T: Decodable>(_ type: T.Type, yaml: String, environment: [String: String]) throws -> T {
+        let parser = try Parser(yaml: yaml, resolver: .basic.appending(.merge))
+        // The parser owns the anchors that nodes refer to weakly; keep it alive while decoding.
+        return try withExtendedLifetime(parser) {
+            let node = try parser.singleRoot() ?? ""
+            return try YAMLDecoder().decode(type, from: node.expandingEnvVars(environment))
+        }
+    }
+
+    /// `environment` feeds `${VAR}` expansion; pass the project's, so `${XC_ROOT}` is its root.
+    static func loadGlobalConfig(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) throws -> GlobalConfig? {
         let configDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/xc").path
         let path = ["config.yaml", "config.yml"]
             .map { configDir + "/" + $0 }
@@ -179,7 +192,7 @@ enum ConfigLoader {
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let yaml = String(data: data, encoding: .utf8) ?? ""
         do {
-            return try YAMLDecoder().decode(GlobalConfig.self, from: yaml)
+            return try decode(GlobalConfig.self, yaml: yaml, environment: environment)
         } catch {
             throw XCError.invalidConfig("Global config: \(describeYAMLError(error))")
         }

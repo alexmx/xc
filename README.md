@@ -213,7 +213,7 @@ xc build --all --continue    # don't stop at the first failure
 
 ### Environment variables
 
-`${VAR}` and `${VAR:-default}` expand anywhere in the config:
+`${VAR}` and `${VAR:-default}` expand in every value of the project, member and global configs (keys such as command or destination names stay literal):
 
 ```yaml
 destinations:

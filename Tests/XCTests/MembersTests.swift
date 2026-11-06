@@ -135,8 +135,6 @@ struct MembersTests {
 
     @Test("member paths expand environment variables")
     func membersEnvExpand() throws {
-        setenv("XC_TEST_PKG_DIR", "Vendored", 1)
-        defer { unsetenv("XC_TEST_PKG_DIR") }
         let yaml = """
         members:
           core: "${XC_TEST_PKG_DIR}/Core"
@@ -144,7 +142,11 @@ struct MembersTests {
           lint:
             run: "swiftlint"
         """
-        let config = try YAMLDecoder().decode(ProjectConfig.self, from: yaml).expandingEnvVars()
+        let config = try ConfigLoader.decode(
+            ProjectConfig.self,
+            yaml: yaml,
+            environment: ["XC_TEST_PKG_DIR": "Vendored"]
+        )
         #expect(config.members?["core"] == "Vendored/Core")
     }
 

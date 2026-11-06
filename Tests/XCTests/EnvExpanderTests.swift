@@ -91,40 +91,100 @@ struct EnvExpanderTests {
 
     // MARK: - Config expansion
 
-    @Test("ProjectConfig expands env vars in all fields")
-    func projectConfigExpansion() {
-        let config = ProjectConfig(
-            project: "${XC_TEST_NONEXISTENT:-MyApp.xcodeproj}",
-            destinations: [
-                "sim": "${XC_TEST_NONEXISTENT:-platform=iOS Simulator,name=iPhone 17 Pro}"
-            ],
-            defaults: CommandConfig(scheme: "${XC_TEST_NONEXISTENT:-DefaultScheme}"),
-            commands: [
-                "build": CommandConfig(
-                    configuration: "${XC_TEST_NONEXISTENT:-Debug}",
-                    variants: [
-                        "release": CommandConfig(configuration: "${XC_TEST_NONEXISTENT:-Release}")
-                    ]
-                )
-            ]
-        )
+    private let env = ["APP": "MyApp", "SIM": "iPhone 17 Pro", "FMT": "xcbeautify --quiet", "ON": "true"]
 
-        let expanded = config.expandingEnvVars()
-        #expect(expanded.project == "MyApp.xcodeproj")
-        #expect(expanded.destinations?["sim"] == "platform=iOS Simulator,name=iPhone 17 Pro")
-        #expect(expanded.defaults?.scheme == "DefaultScheme")
-        #expect(expanded.commands?["build"]?.configuration == "Debug")
-        #expect(expanded.commands?["build"]?.variants?["release"]?.configuration == "Release")
+    @Test("every project config value expands, nested ones included")
+    func projectConfigExpansion() throws {
+        let yaml = """
+        project: ${APP}.xcodeproj
+        destinations:
+          sim: "platform=iOS Simulator,name=${SIM}"
+        defaults:
+          scheme: ${APP}
+          destination: [sim, "${UNSET:-mac}"]
+        settings:
+          formatter: ${FMT}
+          verbose: ${ON}
+        commands:
+          build:
+            configuration: ${UNSET:-Debug}
+            extra-args: ["-derivedDataPath", "${APP}/DD"]
+            hooks: { pre: "echo ${APP}" }
+            variants:
+              release: { configuration: "${UNSET:-Release}" }
+        """
+        let config = try ConfigLoader.decode(ProjectConfig.self, yaml: yaml, environment: env)
+        #expect(config.project == "MyApp.xcodeproj")
+        #expect(config.destinations?["sim"] == "platform=iOS Simulator,name=iPhone 17 Pro")
+        #expect(config.defaults?.scheme == "MyApp")
+        #expect(config.defaults?.destination == ["sim", "mac"])
+        #expect(config.settings?.formatter == "xcbeautify --quiet")
+        #expect(config.settings?.verbose == true)
+        #expect(config.commands?["build"]?.configuration == "Debug")
+        #expect(config.commands?["build"]?.extraArgs == ["-derivedDataPath", "MyApp/DD"])
+        #expect(config.commands?["build"]?.hooks?.pre == "echo MyApp")
+        #expect(config.commands?["build"]?.variants?["release"]?.configuration == "Release")
     }
 
-    @Test("HookConfig expands env vars")
-    func hookConfigExpansion() {
-        let hooks = HookConfig(
-            pre: "${XC_TEST_NONEXISTENT:-swiftlint lint}",
-            post: "${XC_TEST_NONEXISTENT:-echo done}"
-        )
-        let expanded = hooks.expandingEnvVars()
-        #expect(expanded.pre == "swiftlint lint")
-        #expect(expanded.post == "echo done")
+    @Test("global config values expand")
+    func globalConfigExpansion() throws {
+        let yaml = """
+        defaults:
+          scheme: ${APP}
+        settings:
+          formatter: ${FMT}
+        """
+        let config = try ConfigLoader.decode(GlobalConfig.self, yaml: yaml, environment: env)
+        #expect(config.defaults?.scheme == "MyApp")
+        #expect(config.settings?.formatter == "xcbeautify --quiet")
+    }
+
+    @Test("keys stay literal")
+    func keysNotExpanded() throws {
+        let yaml = """
+        destinations:
+          ${APP}: "platform=macOS"
+        commands:
+          ${APP}: { run: "true" }
+        """
+        let config = try ConfigLoader.decode(ProjectConfig.self, yaml: yaml, environment: env)
+        #expect(config.destinations?.keys.sorted() == ["${APP}"])
+        #expect(config.commands?.keys.sorted() == ["${APP}"])
+    }
+
+    @Test("a value that expands to empty, null or ~ stays that string")
+    func nullishExpansionStaysString() throws {
+        let yaml = """
+        commands:
+          empty:
+            run: ${UNSET}
+          quoted:
+            run: "${UNSET}"
+          null:
+            run: ${NULLISH}
+          tilde:
+            run: ${TILDE}
+        """
+        let environment = ["NULLISH": "null", "TILDE": "~"]
+        let config = try ConfigLoader.decode(ProjectConfig.self, yaml: yaml, environment: environment)
+        #expect(config.commands?["empty"]?.run == "")
+        #expect(config.commands?["quoted"]?.run == "")
+        #expect(config.commands?["null"]?.run == "null")
+        #expect(config.commands?["tilde"]?.run == "~")
+    }
+
+    @Test("YAML anchors and merge keys still work")
+    func mergeKeys() throws {
+        let yaml = """
+        defaults: &base
+          scheme: ${APP}
+        commands:
+          build:
+            <<: *base
+            configuration: Release
+        """
+        let config = try ConfigLoader.decode(ProjectConfig.self, yaml: yaml, environment: env)
+        #expect(config.commands?["build"]?.scheme == "MyApp")
+        #expect(config.commands?["build"]?.configuration == "Release")
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import Yams
 
 enum EnvExpander {
     /// Expand `${VAR}` and `${VAR:-default}` patterns in a string.
@@ -60,56 +61,37 @@ enum EnvExpander {
 
 // MARK: - Config expansion
 
-extension String {
-    func envExpanded(_ env: [String: String]) -> String {
-        EnvExpander.expand(self, environment: env)
-    }
-}
+extension Node {
+    /// What Yams' `NSNull.construct(from:)` reads as null in an unquoted scalar.
+    private static let nullSpellings: Set<String> = ["", "~", "null", "Null", "NULL"]
 
-extension ProjectConfig {
-    func expandingEnvVars(_ env: [String: String] = ProcessInfo.processInfo.environment) -> ProjectConfig {
-        ProjectConfig(
-            project: project?.envExpanded(env),
-            workspace: workspace?.envExpanded(env),
-            destinations: destinations?.mapValues { $0.envExpanded(env) },
-            defaults: defaults?.expandingEnvVars(env),
-            commands: commands?.mapValues { $0.expandingEnvVars(env) },
-            settings: settings,
-            members: members?.mapValues { $0.envExpanded(env) }
-        )
-    }
-}
-
-extension CommandConfig {
-    func expandingEnvVars(_ env: [String: String] = ProcessInfo.processInfo.environment) -> CommandConfig {
-        CommandConfig(
-            run: run?.envExpanded(env),
-            scheme: scheme?.envExpanded(env),
-            configuration: configuration?.envExpanded(env),
-            destination: destination?.expandingEnvVars(env),
-            testPlan: testPlan?.envExpanded(env),
-            resultBundlePath: resultBundlePath?.envExpanded(env),
-            xcconfig: xcconfig?.envExpanded(env),
-            derivedDataPath: derivedDataPath?.envExpanded(env),
-            archivePath: archivePath?.envExpanded(env),
-            extraArgs: extraArgs?.map { $0.envExpanded(env) },
-            hooks: hooks?.expandingEnvVars(env),
-            variants: variants?.mapValues { $0.expandingEnvVars(env) }
-        )
-    }
-}
-
-extension OneOrMany {
-    func expandingEnvVars(_ env: [String: String]) -> OneOrMany {
-        OneOrMany(values.map { $0.envExpanded(env) })
-    }
-}
-
-extension HookConfig {
-    func expandingEnvVars(_ env: [String: String] = ProcessInfo.processInfo.environment) -> HookConfig {
-        HookConfig(
-            pre: pre?.envExpanded(env),
-            post: post?.envExpanded(env)
-        )
+    /// Expand `${VAR}` in every scalar value; mapping keys (command, destination and
+    /// member names) stay literal.
+    func expandingEnvVars(_ environment: [String: String]) -> Node {
+        switch self {
+        case .scalar(var scalar):
+            let expanded = EnvExpander.expand(scalar.string, environment: environment)
+            guard expanded != scalar.string else { return self }
+            scalar.string = expanded
+            // Yams reads an unquoted "", "~" or "null" as nil; an expanded value must stay
+            // that string, so treat it as quoted. Other values keep their style, so
+            // `verbose: ${FLAG}` still decodes as a Bool.
+            if Self.nullSpellings.contains(expanded) {
+                scalar.style = .doubleQuoted
+            }
+            return .scalar(scalar)
+        case .mapping(var mapping):
+            for index in mapping.indices {
+                mapping[index].value = mapping[index].value.expandingEnvVars(environment)
+            }
+            return .mapping(mapping)
+        case .sequence(var sequence):
+            for index in sequence.indices {
+                sequence[index] = sequence[index].expandingEnvVars(environment)
+            }
+            return .sequence(sequence)
+        case .alias:
+            return self
+        }
     }
 }
