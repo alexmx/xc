@@ -6,8 +6,8 @@ let package = Package(
     name: "xc",
     platforms: [.macOS(.v15)],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
-        .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.8.2"),
+        .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.2"),
         .package(url: "https://github.com/swiftlang/swift-subprocess.git", .upToNextMinor(from: "1.0.2"))
     ],
     targets: [
