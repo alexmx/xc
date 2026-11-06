@@ -12,6 +12,9 @@ enum XCError: LocalizedError {
     case buildFailed(Int32)
     case hookFailed(String, Int32)
     case scriptFailed(String, Int32)
+    case badStep(command: String, step: String, underlying: String)
+    case stepsLoop([String])
+    case stepsFailed([String])
 
     var errorDescription: String? {
         switch self {
@@ -42,6 +45,14 @@ enum XCError: LocalizedError {
             "xcodebuild exited with code \(code)."
         case .scriptFailed(let name, let code):
             "Command '\(name)' exited with code \(code)."
+        case .badStep(let command, let step, let underlying):
+            "Step '\(step)' of '\(command)': \(underlying)"
+        case .stepsLoop(let chain):
+            "Steps of '\(chain.first ?? "")' loop: \(chain.joined(separator: " → "))."
+        case .stepsFailed(let steps) where steps.count == 1:
+            "Step '\(steps[0])' failed."
+        case .stepsFailed(let steps):
+            "Steps failed: \(steps.joined(separator: ", "))."
         case .hookFailed(let label, let code):
             "Hook '\(label)' failed with exit code \(code)."
         }

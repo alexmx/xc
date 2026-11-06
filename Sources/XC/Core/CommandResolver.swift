@@ -3,9 +3,19 @@ enum CommandResolver {
         enum Action: Equatable {
             /// A `run:` command, executed with `/bin/sh -c`.
             case script(String)
+            /// Other commands to run in order (a `steps:` command).
+            case steps([CommandRef])
             /// An xcodebuild invocation (starting with "xcodebuild"); output is piped
             /// through `formatter`, the `settings.formatter` value (see `CommandRunner.formatterCommand`).
             case xcodebuild(arguments: [String], formatter: String?)
+
+            var isSteps: Bool {
+                if case .steps = self {
+                    true
+                } else {
+                    false
+                }
+            }
         }
 
         let action: Action
@@ -38,8 +48,21 @@ enum CommandResolver {
 
         let configExtraArgs = first(\.extraArgs, in: commandLayers) ?? []
 
-        // A `run:` makes this a script command.
-        if let script = first(\.run, in: commandLayers) {
+        // The most specific layer that sets `steps` or `run:` decides what kind of command this is.
+        let definingLayer = commandLayers.first { $0.steps != nil || $0.run != nil }
+        if let steps = definingLayer?.steps {
+            let label = variant.map { "\(commandName):\($0)" } ?? commandName
+            let refs = try steps.map { step in
+                do {
+                    return try CommandRef(parsing: step)
+                } catch {
+                    throw XCError.badStep(command: label, step: step, underlying: error.localizedDescription)
+                }
+            }
+            return ResolvedCommand(action: .steps(refs), hooks: hooks)
+        }
+
+        if let script = definingLayer?.run {
             var fullScript = script
             // Config-authored extraArgs are trusted (same authorship as the run string)
             // and may intentionally use shell syntax, so they are appended verbatim.

@@ -74,6 +74,8 @@ struct CommandConfig: Codable, Sendable {
     var extraArgs: [String]?
     var hooks: HookConfig?
     var variants: [String: CommandConfig]?
+    /// Other commands to run in order, as written on the command line (`build:release`).
+    var steps: [String]?
 
     enum CodingKeys: String, CodingKey {
         case run, scheme, configuration, destination
@@ -83,7 +85,7 @@ struct CommandConfig: Codable, Sendable {
         case derivedDataPath = "derived-data-path"
         case archivePath = "archive-path"
         case extraArgs = "extra-args"
-        case hooks, variants
+        case hooks, variants, steps
     }
 }
 

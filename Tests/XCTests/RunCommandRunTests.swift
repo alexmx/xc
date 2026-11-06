@@ -114,4 +114,116 @@ struct RunCommandRunTests {
         #expect(try await failure(["step", "--members", "ghost"], in: dir)
             == "Unknown member 'ghost'. Available members: a, b, c.")
     }
+
+    // MARK: - Steps
+
+    /// Commands a, b and bad append to `log` in the project root; `extra` adds more YAML.
+    private func stepsProject(_ extra: String, files: [String: String] = [:]) throws -> String {
+        try makeProject(files.merging(["xc.yaml": """
+        commands:
+          a:
+            run: "echo a >> log"
+          b:
+            run: "echo b >> log"
+          bad:
+            run: "echo bad >> log; exit 1"
+          bad2:
+            run: "exit 1"
+        \(extra)
+        """]) { $1 })
+    }
+
+    private func log(_ dir: String) -> String? {
+        try? String(contentsOfFile: dir + "/log", encoding: .utf8)
+    }
+
+    @Test("steps run in order")
+    func stepsInOrder() async throws {
+        let dir = try stepsProject("  gate:\n    steps: [a, b]")
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        #expect(try await failure(["gate"], in: dir) == nil)
+        #expect(log(dir) == "a\nb\n")
+    }
+
+    @Test("a failing step stops the chain")
+    func stepsFailFast() async throws {
+        let dir = try stepsProject("  gate:\n    steps: [a, bad, b]")
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        #expect(try await failure(["gate"], in: dir) == "Step 'bad' failed.")
+        #expect(log(dir) == "a\nbad\n")
+    }
+
+    @Test("--continue runs every step and lists the failures")
+    func stepsContinue() async throws {
+        let dir = try stepsProject("  gate:\n    steps: [bad, a, bad2, b]")
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        #expect(try await failure(["gate", "--continue"], in: dir) == "Steps failed: bad, bad2.")
+        #expect(log(dir) == "bad\na\nb\n")
+    }
+
+    @Test("--dry-run runs nothing")
+    func stepsDryRun() async throws {
+        let dir = try stepsProject("  gate:\n    steps: [a, b]")
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        #expect(try await failure(["gate", "--dry-run"], in: dir) == nil)
+        #expect(log(dir) == nil)
+    }
+
+    @Test("an unknown step fails before any step runs")
+    func stepsUnknown() async throws {
+        let dir = try stepsProject("  gate:\n    steps: [a, nope]")
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        let message = try await failure(["gate"], in: dir)
+        #expect(message?.hasPrefix("Step 'nope' of 'gate': Unknown command 'nope'.") == true)
+        #expect(log(dir) == nil)
+    }
+
+    @Test("steps that loop back are rejected before any step runs")
+    func stepsCycle() async throws {
+        let dir = try stepsProject("  gate:\n    steps: [a, check]\n  check:\n    steps: [gate]")
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        #expect(try await failure(["gate"], in: dir) == "Steps of 'gate' loop: gate → check → gate.")
+        #expect(log(dir) == nil)
+    }
+
+    @Test("arguments after -- are rejected for a steps command")
+    func stepsPassthrough() async throws {
+        let dir = try stepsProject("  gate:\n    steps: [a]")
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        #expect(try await failure(["gate", "--", "-x"], in: dir)
+            == "Invalid command 'gate': arguments after -- can't be passed to a steps command.")
+        #expect(log(dir) == nil)
+    }
+
+    @Test("the steps command's hooks wrap the chain; each step keeps its own")
+    func stepsHooks() async throws {
+        let dir = try stepsProject("""
+          gate:
+            steps: [b]
+            hooks:
+              pre: "echo gate-pre >> log"
+              post: "echo gate-post >> log"
+          hooked:
+            run: "echo hooked >> log"
+            hooks:
+              pre: "echo hooked-pre >> log"
+          wrapped:
+            steps: [gate, hooked]
+        """)
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        #expect(try await failure(["wrapped"], in: dir) == nil)
+        #expect(log(dir) == "gate-pre\nb\ngate-post\nhooked-pre\nhooked\n")
+    }
+
+    @Test("a member step runs in the member")
+    func stepsMember() async throws {
+        let dir = try stepsProject(
+            "  gate:\n    steps: [a, core/a]\nmembers:\n  core: core",
+            files: ["core/xc.yaml": "commands:\n  a:\n    run: \"echo core >> log\"\n"]
+        )
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        #expect(try await failure(["gate"], in: dir) == nil)
+        #expect(log(dir) == "a\n")
+        #expect(log(dir + "/core") == "core\n")
+    }
 }

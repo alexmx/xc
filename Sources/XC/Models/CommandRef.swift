@@ -10,6 +10,11 @@ struct CommandRef: Equatable {
         self.variant = variant
     }
 
+    /// The reference as it would be typed: `core/build:release`.
+    var text: String {
+        (member.map { "\($0)/" } ?? "") + name + (variant.map { ":\($0)" } ?? "")
+    }
+
     /// The first "/" ends the member and the first ":" starts the variant, so
     /// `build:a:b` is variant `a:b`. A leading "/" means no member.
     init(parsing input: String) throws {

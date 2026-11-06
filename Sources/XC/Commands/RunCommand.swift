@@ -62,27 +62,47 @@ struct RunCommand: AsyncParsableCommand {
 
         // A member-addressed command, "member/command[:variant]", runs in that member.
         let config = try ref.member.map { try loadMember($0, rootConfig: rootConfig) } ?? rootConfig
-        try await execute(ref, config: config)
+        try await execute(ref, config: config, extraArgs: passthroughArgs)
     }
 
     // MARK: - Single execution
 
     /// Resolve and run one command against a loaded config, with its own directory as cwd.
-    private func execute(_ ref: CommandRef, config: ConfigLoader.LoadedConfig) async throws {
+    /// `extraArgs` are the arguments after `--`; `asStep` marks a command run by a steps command.
+    func execute(
+        _ ref: CommandRef,
+        config: ConfigLoader.LoadedConfig,
+        extraArgs: [String],
+        asStep: Bool = false
+    ) async throws {
         let commandName = ref.name
         let resolved = try CommandResolver.resolve(
             commandName: commandName,
             variant: ref.variant,
             config: config,
             destOverride: dest,
-            extraArgs: passthroughArgs
+            extraArgs: extraArgs
         )
+
+        if case .steps = resolved.action {
+            guard extraArgs.isEmpty else {
+                throw XCError.invalidCommand(ref.text, reason: "arguments after -- can't be passed to a steps command")
+            }
+            // Check the whole chain before anything runs, so a typo or loop doesn't fail halfway.
+            if !asStep {
+                try checkSteps(of: ref, config: config)
+            }
+        }
 
         let projectRoot = config.projectRoot
         let environment = config.environment
 
         if dryRun {
-            print(Self.commandLine(resolved.action))
+            if case .steps(let steps) = resolved.action {
+                try await runSteps(steps, config: config)
+            } else {
+                print(Self.commandLine(resolved.action))
+            }
             return
         }
 
@@ -90,7 +110,7 @@ struct RunCommand: AsyncParsableCommand {
             try await runHook(preHook, label: "pre-\(commandName)", config: config)
         }
 
-        if Self.isVerbose(flag: verbose, config: config) {
+        if Self.isVerbose(flag: verbose, config: config), !resolved.action.isSteps {
             print("$ \(Self.commandLine(resolved.action))")
             fflush(stdout)
         }
@@ -107,6 +127,8 @@ struct RunCommand: AsyncParsableCommand {
                 workingDirectory: projectRoot,
                 environment: environment
             )
+        case .steps(let steps):
+            try await runSteps(steps, config: config)
         }
 
         if let postHook = resolved.hooks?.post {
@@ -123,7 +145,7 @@ struct RunCommand: AsyncParsableCommand {
 
     // MARK: - Members
 
-    private func loadMember(_ name: String, rootConfig: ConfigLoader.LoadedConfig) throws -> ConfigLoader.LoadedConfig {
+    func loadMember(_ name: String, rootConfig: ConfigLoader.LoadedConfig) throws -> ConfigLoader.LoadedConfig {
         let members = ConfigLoader.members(of: rootConfig.project, root: rootConfig.projectRoot)
         guard let member = members.first(where: { $0.name == name }) else {
             throw XCError.unknownMember(name, available: members.map(\.name))
@@ -174,7 +196,7 @@ struct RunCommand: AsyncParsableCommand {
             Self.announce("==> \(label)")
             ran += 1
             do {
-                try await execute(ref, config: config)
+                try await execute(ref, config: config, extraArgs: passthroughArgs)
             } catch {
                 Self.announce("✗ \(label): \(error.localizedDescription)")
                 failed.append(label)
@@ -211,6 +233,7 @@ struct RunCommand: AsyncParsableCommand {
         switch action {
         case .script(let script): script
         case .xcodebuild(let arguments, _): arguments.map(CommandResolver.shellQuote).joined(separator: " ")
+        case .steps(let steps): "steps: " + steps.map(\.text).joined(separator: ", ")
         }
     }
 

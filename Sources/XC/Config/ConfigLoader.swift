@@ -111,6 +111,33 @@ enum ConfigLoader {
         if (config.commands ?? [:]).isEmpty {
             throw XCError.invalidConfig("No commands defined. Add a 'commands' section to xc.yaml.")
         }
+        for (name, command) in (config.commands ?? [:]).sorted(by: { $0.key < $1.key }) {
+            try validateSteps(command, label: name)
+            for (variant, config) in (command.variants ?? [:]).sorted(by: { $0.key < $1.key }) {
+                try validateSteps(config, label: "\(name):\(variant)")
+            }
+        }
+    }
+
+    /// A steps command only lists other commands: it can't run a script or set xcodebuild settings.
+    private static func validateSteps(_ command: CommandConfig, label: String) throws {
+        guard let steps = command.steps else { return }
+        guard !steps.isEmpty else {
+            throw XCError.invalidConfig("Command '\(label)' has an empty 'steps' list.")
+        }
+        let others = [
+            ("run", command.run != nil), ("scheme", command.scheme != nil),
+            ("configuration", command.configuration != nil), ("destination", command.destination != nil),
+            ("test-plan", command.testPlan != nil), ("result-bundle-path", command.resultBundlePath != nil),
+            ("xcconfig", command.xcconfig != nil), ("derived-data-path", command.derivedDataPath != nil),
+            ("archive-path", command.archivePath != nil), ("extra-args", command.extraArgs != nil)
+        ].filter(\.1).map(\.0)
+        guard others.isEmpty else {
+            throw XCError.invalidConfig(
+                "Command '\(label)' combines 'steps' with \(others.joined(separator: ", ")). "
+                    + "A steps command only lists other commands."
+            )
+        }
     }
 
     /// Load the project config, walking up from the given directory until found.

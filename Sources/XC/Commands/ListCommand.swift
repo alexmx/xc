@@ -78,6 +78,9 @@ struct ListCommand: ParsableCommand {
 
     /// One line describing a command, variant or the defaults: its `run:` script, or its settings.
     static func summarize(_ config: CommandConfig) -> String {
+        if let steps = config.steps {
+            return "steps: \(steps.joined(separator: ", "))"
+        }
         if let run = config.run {
             return "$ \(run)"
         }
