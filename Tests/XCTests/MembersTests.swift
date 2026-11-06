@@ -5,43 +5,6 @@ import Yams
 
 @Suite("Members Tests")
 struct MembersTests {
-    // MARK: - parseMemberPath
-
-    @Test("parseMemberPath with no member")
-    func parseMemberPathPlain() {
-        let (member, command) = RunCommand.parseMemberPath("build")
-        #expect(member == nil)
-        #expect(command == "build")
-    }
-
-    @Test("parseMemberPath splits member and command")
-    func parseMemberPathSplit() {
-        let (member, command) = RunCommand.parseMemberPath("core/build")
-        #expect(member == "core")
-        #expect(command == "build")
-    }
-
-    @Test("parseMemberPath keeps variant on the command side")
-    func parseMemberPathWithVariant() {
-        let (member, command) = RunCommand.parseMemberPath("core/build:release")
-        #expect(member == "core")
-        #expect(command == "build:release")
-    }
-
-    @Test("parseMemberPath with leading slash has no member")
-    func parseMemberPathLeadingSlash() {
-        let (member, command) = RunCommand.parseMemberPath("/build")
-        #expect(member == nil)
-        #expect(command == "build")
-    }
-
-    @Test("parseMemberPath with trailing slash yields empty command")
-    func parseMemberPathTrailingSlash() {
-        let (member, command) = RunCommand.parseMemberPath("core/")
-        #expect(member == "core")
-        #expect(command == "")
-    }
-
     // MARK: - selectMembers
 
     @Test("selectMembers with all returns every member")

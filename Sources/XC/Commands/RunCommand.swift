@@ -46,31 +46,33 @@ struct RunCommand: AsyncParsableCommand {
             return
         }
 
+        let ref = try CommandRef(parsing: command)
+
         // Root config — honoring -C/--directory (walks up like a plain `cd dir && xc`).
         let rootConfig = try ConfigLoader.load(from: directory)
 
-        // Shape 3 — fan-out across members.
+        // Fan-out across members.
         if all || members != nil {
-            try await runFanOut(command: command, rootConfig: rootConfig)
+            guard ref.member == nil else {
+                throw XCError.invalidCommand(command, reason: "use either member/command or --all/--members, not both")
+            }
+            try await runFanOut(ref, rootConfig: rootConfig)
             return
         }
 
-        // Shape 2 — member-addressed command "member/command[:variant]".
-        let (memberName, commandToken) = Self.parseMemberPath(command)
-        let config = try memberName.map { try loadMember($0, rootConfig: rootConfig) } ?? rootConfig
-
-        try await execute(commandToken, config: config)
+        // A member-addressed command, "member/command[:variant]", runs in that member.
+        let config = try ref.member.map { try loadMember($0, rootConfig: rootConfig) } ?? rootConfig
+        try await execute(ref, config: config)
     }
 
     // MARK: - Single execution
 
     /// Resolve and run one command against a loaded config, with its own directory as cwd.
-    private func execute(_ commandString: String, config: ConfigLoader.LoadedConfig) async throws {
-        let (commandName, variantName) = Self.parseCommand(commandString)
-
+    private func execute(_ ref: CommandRef, config: ConfigLoader.LoadedConfig) async throws {
+        let commandName = ref.name
         let resolved = try CommandResolver.resolve(
             commandName: commandName,
-            variant: variantName,
+            variant: ref.variant,
             config: config,
             destOverride: dest,
             extraArgs: passthroughArgs
@@ -143,15 +145,15 @@ struct RunCommand: AsyncParsableCommand {
         }
     }
 
-    /// Shape 3 — run `command` in each selected member, sequentially.
-    private func runFanOut(command: String, rootConfig: ConfigLoader.LoadedConfig) async throws {
+    /// Run `ref` in each selected target, sequentially.
+    private func runFanOut(_ ref: CommandRef, rootConfig: ConfigLoader.LoadedConfig) async throws {
         let available = ConfigLoader.memberNames(rootConfig.project)
         guard !available.isEmpty else {
             throw XCError.invalidConfig("No members defined. Add a 'members' section to use --all/--members.")
         }
 
         let targets = try Self.fanOutTargetNames(all: all, list: members, available: available)
-        let (commandName, _) = Self.parseCommand(command)
+        let commandName = ref.name
 
         var failed: [String] = []
         var ran = 0
@@ -182,7 +184,7 @@ struct RunCommand: AsyncParsableCommand {
             Self.announce("==> \(label)")
             ran += 1
             do {
-                try await execute(command, config: config)
+                try await execute(ref, config: config)
             } catch {
                 Self.announce("✗ \(label): \(error.localizedDescription)")
                 failed.append(label)
@@ -220,23 +222,6 @@ struct RunCommand: AsyncParsableCommand {
         case .script(let script): script
         case .xcodebuild(let arguments, _): arguments.map(CommandResolver.shellQuote).joined(separator: " ")
         }
-    }
-
-    /// Split "command:variant" into its parts. The first ":" separates them.
-    static func parseCommand(_ input: String) -> (command: String, variant: String?) {
-        let parts = input.split(separator: ":", maxSplits: 1)
-        let command = String(parts[0])
-        let variant = parts.count > 1 ? String(parts[1]) : nil
-        return (command, variant)
-    }
-
-    /// Split "member/command[:variant]" into the member name and the remaining command token.
-    /// Returns a nil member when there is no "/".
-    static func parseMemberPath(_ input: String) -> (member: String?, command: String) {
-        guard let slash = input.firstIndex(of: "/") else { return (nil, input) }
-        let member = String(input[..<slash])
-        let command = String(input[input.index(after: slash)...])
-        return (member.isEmpty ? nil : member, command)
     }
 
     /// Internal label for the root project as a fan-out target. Members can't be named ".".

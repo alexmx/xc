@@ -3,6 +3,7 @@ import Foundation
 enum XCError: LocalizedError {
     case configNotFound(directory: String, searchedParents: Bool)
     case invalidConfig(String)
+    case invalidCommand(String, reason: String)
     case unknownCommand(String, available: [String])
     case unknownVariant(String, String, available: [String])
     case unknownMember(String, available: [String])
@@ -20,6 +21,8 @@ enum XCError: LocalizedError {
             "No xc.yaml (or xc.yml) found in \(directory)."
         case .invalidConfig(let reason):
             "Invalid xc.yaml: \(reason)"
+        case .invalidCommand(let input, let reason):
+            "Invalid command '\(input)': \(reason)."
         case .unknownCommand(let name, let available):
             "Unknown command '\(name)'. Available commands: \(available.sorted().joined(separator: ", "))."
         case .unknownVariant(let command, let variant, let available):
