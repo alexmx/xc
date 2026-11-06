@@ -117,7 +117,7 @@ xc [<member>/]<command>[:<variant>] [options] [-- extra-xcodebuild-args...]
 | `xc <member>/<command>` | Run a command in a nested member project |
 | `xc list` | Show available commands, variants, and members |
 | `xc init` | Generate `xc.yaml` from your project |
-| `xc doctor` | Validate setup and diagnose issues |
+| `xc doctor` | Validate setup and diagnose issues; exits 1 if a check fails, so it can gate CI |
 | `xc destinations` | List available simulators and platforms |
 
 | Option | |

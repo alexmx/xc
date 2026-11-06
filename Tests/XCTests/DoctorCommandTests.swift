@@ -176,4 +176,37 @@ struct DoctorCommandTests {
         #expect(DoctorCommand.globalConfigCheck(path: path) == Check("Global config", .ok, path))
         #expect(DoctorCommand.globalConfigCheck(path: nil) == Check("Global config", .skip, "not found (optional)"))
     }
+
+    // MARK: - Exit status
+
+    private func withProject(_ yaml: String?, _ body: (String) async throws -> Void) async throws {
+        let dir = NSTemporaryDirectory() + "xc-test-\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        if let yaml {
+            try yaml.write(toFile: dir + "/xc.yaml", atomically: true, encoding: .utf8)
+        }
+        try await body(dir)
+    }
+
+    @Test("doctor passes when no check fails")
+    func doctorPasses() async throws {
+        try await withProject("commands:\n  lint:\n    run: \"true\"\n") { dir in
+            #expect(await DoctorCommand.runChecks(from: dir))
+        }
+    }
+
+    @Test("doctor fails when a check fails")
+    func doctorFailsOnFailedCheck() async throws {
+        try await withProject("project: Missing.xcodeproj\ncommands:\n  build: {}\n") { dir in
+            #expect(await !DoctorCommand.runChecks(from: dir))
+        }
+    }
+
+    @Test("doctor fails when xc.yaml is invalid")
+    func doctorFailsOnInvalidConfig() async throws {
+        try await withProject("commands: [not, a, mapping]\n") { dir in
+            #expect(await !DoctorCommand.runChecks(from: dir))
+        }
+    }
 }

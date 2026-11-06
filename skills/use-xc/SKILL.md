@@ -52,7 +52,7 @@ On failure, re-run with `--verbose` or `--raw` before changing anything.
 - `xc list`: every command, variant (`:name`), script (`$ …`), and `defaults`.
 - `xc destinations`: simulators/platforms this machine can target.
 - `xc init`: generate a starter `xc.yaml` from the detected project/schemes.
-- `xc doctor`: validate `xc.yaml`, workspace/project, schemes, destinations, formatter, global config, members.
+- `xc doctor`: validate `xc.yaml`, workspace/project, schemes, destinations, formatter, global config, members. Exits 1 on any FAIL (WARN doesn't fail).
 
 ## Monorepos (members)
 

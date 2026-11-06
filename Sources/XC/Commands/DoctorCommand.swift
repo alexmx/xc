@@ -7,38 +7,48 @@ struct DoctorCommand: AsyncParsableCommand {
         abstract: "Validate project setup and diagnose common issues"
     )
 
+    /// Exits 1 when any check fails, so `xc doctor` can gate CI. Warnings don't fail it.
     func run() async throws {
+        guard await Self.runChecks(from: nil) else {
+            throw ExitCode.failure
+        }
+    }
+
+    /// Run and print every check for the project found from `directory` (default: the
+    /// current one). Returns whether none failed.
+    static func runChecks(from directory: String?) async -> Bool {
         let projectConfig: ProjectConfig
         let projectRoot: String
         do {
-            (projectConfig, projectRoot) = try ConfigLoader.loadProjectConfig()
+            (projectConfig, projectRoot) = try ConfigLoader.loadProjectConfig(from: directory)
         } catch {
-            Self.printCheck(Self.configFileCheck(error))
-            return
+            printCheck(configFileCheck(error))
+            return false
         }
 
         var failed = false
         func report(_ checks: [Check]) {
             for check in checks {
-                Self.printCheck(check)
+                printCheck(check)
                 failed = failed || check.status == .fail
             }
         }
 
         report([Check("xc.yaml", .ok)])
-        report(Self.structureChecks(projectConfig))
-        report(Self.containerChecks(projectConfig, projectRoot: projectRoot))
-        await report(Self.schemeChecks(projectConfig, available: querySchemes(projectConfig, projectRoot: projectRoot)))
+        report(structureChecks(projectConfig))
+        report(containerChecks(projectConfig, projectRoot: projectRoot))
+        await report(schemeChecks(projectConfig, available: querySchemes(projectConfig, projectRoot: projectRoot)))
         if let destinations = projectConfig.destinations, !destinations.isEmpty {
-            await report(Self.destinationChecks(destinations, installedSimulators: queryInstalledSimulatorNames()))
+            await report(destinationChecks(destinations, installedSimulators: queryInstalledSimulatorNames()))
         }
-        report([Self.formatterCheck(), Self.globalConfigCheck()])
-        report(Self.memberChecks(projectConfig, projectRoot: projectRoot))
+        report([formatterCheck(), globalConfigCheck()])
+        report(memberChecks(projectConfig, projectRoot: projectRoot))
 
         if failed {
             print()
             print("Some checks failed. Fix the issues above and run 'xc doctor' again.")
         }
+        return !failed
     }
 
     // MARK: - Checks
@@ -171,11 +181,11 @@ struct DoctorCommand: AsyncParsableCommand {
 
     // MARK: - Queries
 
-    func querySchemes(_ projectConfig: ProjectConfig, projectRoot: String) async -> [String]? {
+    static func querySchemes(_ projectConfig: ProjectConfig, projectRoot: String) async -> [String]? {
         await Schemes.list(containerArgs: projectConfig.containerArgs, in: projectRoot)
     }
 
-    func queryInstalledSimulatorNames() async -> Set<String> {
+    static func queryInstalledSimulatorNames() async -> Set<String> {
         await Set(Simulators.available().values.joined())
     }
 
