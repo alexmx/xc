@@ -8,140 +8,52 @@ struct DoctorCommand: AsyncParsableCommand {
     )
 
     func run() async throws {
-        var hasErrors = false
-
-        // 1. Check xc.yaml
-        let (projectConfig, projectRoot): (ProjectConfig, String)
+        let projectConfig: ProjectConfig
+        let projectRoot: String
         do {
             (projectConfig, projectRoot) = try ConfigLoader.loadProjectConfig()
-            printCheck("xc.yaml", status: .ok)
         } catch {
-            if case XCError.configNotFound = error {
-                printCheck("xc.yaml", status: .fail, detail: "Not found. Run 'xc init' to generate one.")
-            } else if case XCError.invalidConfig(let reason) = error {
-                printCheck("xc.yaml", status: .fail, detail: reason)
-            } else {
-                printCheck("xc.yaml", status: .fail, detail: error.localizedDescription)
-            }
+            Self.printCheck(Self.configFileCheck(error))
             return
         }
 
-        // 2. Validate config structure
-        do {
-            try ConfigLoader.validate(projectConfig)
-        } catch {
-            printCheck("xc.yaml", status: .fail, detail: error.localizedDescription)
-            hasErrors = true
-        }
-
-        // 3. Check project/workspace exists on disk
-        if let project = projectConfig.project {
-            let path = projectRoot + "/" + project
-            if FileManager.default.fileExists(atPath: path) {
-                printCheck("Project", status: .ok, detail: project)
-            } else {
-                printCheck("Project", status: .fail, detail: "\(project) not found")
-                hasErrors = true
-            }
-        } else if let workspace = projectConfig.workspace {
-            let path = projectRoot + "/" + workspace
-            if FileManager.default.fileExists(atPath: path) {
-                printCheck("Workspace", status: .ok, detail: workspace)
-            } else {
-                printCheck("Workspace", status: .fail, detail: "\(workspace) not found")
-                hasErrors = true
+        var failed = false
+        func report(_ checks: [Check]) {
+            for check in checks {
+                Self.printCheck(check)
+                failed = failed || check.status == .fail
             }
         }
 
-        // 4. Check schemes exist
-        let availableSchemes = await querySchemes(projectConfig: projectConfig, projectRoot: projectRoot)
-        let referencedSchemes = collectSchemes(from: projectConfig)
-
-        if let availableSchemes {
-            for scheme in referencedSchemes.sorted() {
-                if availableSchemes.contains(scheme) {
-                    printCheck("Scheme: \(scheme)", status: .ok)
-                } else {
-                    printCheck(
-                        "Scheme: \(scheme)",
-                        status: .fail,
-                        detail: "Not found. Available: \(availableSchemes.sorted().joined(separator: ", "))"
-                    )
-                    hasErrors = true
-                }
-            }
-        }
-
-        // 5. Check named destinations resolve to installed simulators
+        report([Check("xc.yaml", .ok)])
+        report(Self.structureChecks(projectConfig))
+        report(Self.containerChecks(projectConfig, projectRoot: projectRoot))
+        await report(Self.schemeChecks(projectConfig, available: querySchemes(projectConfig, projectRoot: projectRoot)))
         if let destinations = projectConfig.destinations, !destinations.isEmpty {
-            let installedSimulators = await queryInstalledSimulatorNames()
-
-            for (name, value) in destinations.sorted(by: { $0.key < $1.key }) {
-                if value.contains("platform=macOS") {
-                    printCheck("Dest: \(name)", status: .ok, detail: "macOS")
-                } else if let simName = extractSimulatorName(from: value) {
-                    if installedSimulators.contains(simName) {
-                        printCheck("Dest: \(name)", status: .ok, detail: simName)
-                    } else {
-                        printCheck(
-                            "Dest: \(name)",
-                            status: .fail,
-                            detail: "\(simName) not found. Run 'xc destinations' to see available simulators."
-                        )
-                        hasErrors = true
-                    }
-                } else {
-                    printCheck("Dest: \(name)", status: .ok, detail: value)
-                }
-            }
+            await report(Self.destinationChecks(destinations, installedSimulators: queryInstalledSimulatorNames()))
         }
+        report([Self.formatterCheck(), Self.globalConfigCheck()])
+        report(Self.memberChecks(projectConfig, projectRoot: projectRoot))
 
-        // 6. Check xcbeautify
-        if CommandRunner.findInPath("xcbeautify") != nil {
-            printCheck("xcbeautify", status: .ok)
-        } else {
-            printCheck(
-                "xcbeautify",
-                status: .warn,
-                detail: "Not installed. Output will be raw. Install: brew install xcbeautify"
-            )
-        }
-
-        // 7. Check global config
-        do {
-            if let _ = try ConfigLoader.loadGlobalConfig() {
-                printCheck("Global config", status: .ok, detail: "~/.config/xc/config.yaml")
-            } else {
-                printCheck("Global config", status: .skip, detail: "not found (optional)")
-            }
-        } catch {
-            printCheck("Global config", status: .warn, detail: "Parse error: \(error.localizedDescription)")
-        }
-
-        // 8. Check members (nested xc.yaml projects)
-        if let members = projectConfig.members, !members.isEmpty {
-            for name in members.keys.sorted() {
-                let relative = members[name] ?? ""
-                guard let dir = ConfigLoader.memberDirectory(name, config: projectConfig, projectRoot: projectRoot)
-                else { continue }
-                do {
-                    _ = try ConfigLoader.loadExact(from: dir)
-                    printCheck("Member: \(name)", status: .ok, detail: relative)
-                } catch {
-                    let reason = (error as? XCError)?.errorDescription ?? error.localizedDescription
-                    printCheck("Member: \(name)", status: .fail, detail: "\(relative) — \(reason)")
-                    hasErrors = true
-                }
-            }
-        }
-
-        if hasErrors {
+        if failed {
             print()
             print("Some checks failed. Fix the issues above and run 'xc doctor' again.")
         }
     }
 
-    // MARK: - Output formatting
+    // MARK: - Checks
+
+    struct Check: Equatable {
+        let name: String
+        let status: CheckStatus
+        let detail: String?
+
+        init(_ name: String, _ status: CheckStatus, _ detail: String? = nil) {
+            self.name = name
+            self.status = status
+            self.detail = detail
+        }
+    }
 
     enum CheckStatus {
         case ok, warn, fail, skip
@@ -156,22 +68,110 @@ struct DoctorCommand: AsyncParsableCommand {
         }
     }
 
-    static func printCheck(_ name: String, status: CheckStatus, detail: String? = nil) {
-        let statusLabel = status.label.padding(toLength: 4, withPad: " ", startingAt: 0)
-        if let detail {
-            print("  \(statusLabel)  \(name)\t\(detail)")
-        } else {
-            print("  \(statusLabel)  \(name)")
+    /// Why xc.yaml couldn't be loaded.
+    static func configFileCheck(_ error: Error) -> Check {
+        switch error {
+        case XCError.configNotFound: Check("xc.yaml", .fail, "Not found. Run 'xc init' to generate one.")
+        case XCError.invalidConfig(let reason): Check("xc.yaml", .fail, reason)
+        default: Check("xc.yaml", .fail, error.localizedDescription)
         }
     }
 
-    private func printCheck(_ name: String, status: CheckStatus, detail: String? = nil) {
-        Self.printCheck(name, status: status, detail: detail)
+    static func structureChecks(_ config: ProjectConfig) -> [Check] {
+        do {
+            try ConfigLoader.validate(config)
+            return []
+        } catch {
+            return [Check("xc.yaml", .fail, error.localizedDescription)]
+        }
+    }
+
+    /// The project or workspace exists on disk.
+    static func containerChecks(_ config: ProjectConfig, projectRoot: String) -> [Check] {
+        let container = config.project.map { ("Project", $0) } ?? config.workspace.map { ("Workspace", $0) }
+        guard let (label, path) = container else { return [] }
+        return FileManager.default.fileExists(atPath: projectRoot + "/" + path)
+            ? [Check(label, .ok, path)]
+            : [Check(label, .fail, "\(path) not found")]
+    }
+
+    /// Every referenced scheme exists. `available` is nil when xcodebuild couldn't list them.
+    static func schemeChecks(_ config: ProjectConfig, available: [String]?) -> [Check] {
+        guard let available else { return [] }
+        return collectSchemes(from: config).sorted().map { scheme in
+            available.contains(scheme)
+                ? Check("Scheme: \(scheme)", .ok)
+                : Check(
+                    "Scheme: \(scheme)",
+                    .fail,
+                    "Not found. Available: \(available.sorted().joined(separator: ", "))"
+                )
+        }
+    }
+
+    /// Named simulator destinations are installed.
+    static func destinationChecks(_ destinations: [String: String], installedSimulators: Set<String>) -> [Check] {
+        destinations.sorted(by: { $0.key < $1.key }).map { name, value in
+            if value.contains("platform=macOS") {
+                return Check("Dest: \(name)", .ok, "macOS")
+            }
+            guard let simName = extractSimulatorName(from: value) else {
+                return Check("Dest: \(name)", .ok, value)
+            }
+            return installedSimulators.contains(simName)
+                ? Check("Dest: \(name)", .ok, simName)
+                : Check(
+                    "Dest: \(name)",
+                    .fail,
+                    "\(simName) not found. Run 'xc destinations' to see available simulators."
+                )
+        }
+    }
+
+    static func formatterCheck() -> Check {
+        CommandRunner.findInPath("xcbeautify") != nil
+            ? Check("xcbeautify", .ok)
+            : Check("xcbeautify", .warn, "Not installed. Output will be raw. Install: brew install xcbeautify")
+    }
+
+    static func globalConfigCheck() -> Check {
+        do {
+            return try ConfigLoader.loadGlobalConfig() != nil
+                ? Check("Global config", .ok, "~/.config/xc/config.yaml")
+                : Check("Global config", .skip, "not found (optional)")
+        } catch {
+            return Check("Global config", .warn, "Parse error: \(error.localizedDescription)")
+        }
+    }
+
+    /// Each member has a loadable xc.yaml.
+    static func memberChecks(_ config: ProjectConfig, projectRoot: String) -> [Check] {
+        ConfigLoader.memberNames(config).compactMap { name in
+            let relative = config.members?[name] ?? ""
+            guard let dir = ConfigLoader.memberDirectory(name, config: config, projectRoot: projectRoot) else {
+                return nil
+            }
+            do {
+                _ = try ConfigLoader.loadExact(from: dir)
+                return Check("Member: \(name)", .ok, relative)
+            } catch {
+                return Check("Member: \(name)", .fail, "\(relative) — \(error.localizedDescription)")
+            }
+        }
+    }
+
+    static func printCheck(_ check: Check) {
+        let statusLabel = check.status.label.padding(toLength: 4, withPad: " ", startingAt: 0)
+        if let detail = check.detail {
+            print("  \(statusLabel)  \(check.name)\t\(detail)")
+        } else {
+            print("  \(statusLabel)  \(check.name)")
+        }
     }
 
     // MARK: - Queries
 
-    func querySchemes(projectConfig: ProjectConfig, projectRoot: String) async -> [String]? {
+    func querySchemes(_ projectConfig: ProjectConfig, projectRoot: String) async -> [String]? {
         var containerArgs: [String] = []
         if let workspace = projectConfig.workspace {
             containerArgs = ["-workspace", workspace]
@@ -206,10 +206,6 @@ struct DoctorCommand: AsyncParsableCommand {
         return schemes
     }
 
-    private func collectSchemes(from config: ProjectConfig) -> Set<String> {
-        Self.collectSchemes(from: config)
-    }
-
     /// Extract simulator name from a destination string like "platform=iOS Simulator,name=iPhone 17 Pro"
     static func extractSimulatorName(from destination: String) -> String? {
         let parts = destination.split(separator: ",")
@@ -220,9 +216,5 @@ struct DoctorCommand: AsyncParsableCommand {
             }
         }
         return nil
-    }
-
-    private func extractSimulatorName(from destination: String) -> String? {
-        Self.extractSimulatorName(from: destination)
     }
 }
