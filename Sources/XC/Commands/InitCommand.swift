@@ -176,59 +176,50 @@ struct InitCommand: AsyncParsableCommand {
         platform: Platform,
         defaultSimulator: String?
     ) -> String {
-        var lines: [String] = []
+        // Optional lines carry their own newline, so a missing one leaves no blank line.
+        let containerLine = switch detection {
+        case .workspace(_, let path): "workspace: \(path)\n"
+        case .project(_, let path): "project: \(path)\n"
+        case .spm, .none: ""
+        }
+        let schemeLine = primaryScheme.map { "  scheme: \($0)\n" } ?? ""
 
-        lines.append("# xc configuration for \(detection.name)")
-        lines.append("# Run 'xc destinations' to see all available destinations")
-        lines.append("")
-
-        switch detection {
-        case .workspace(_, let path):
-            lines.append("workspace: \(path)")
-        case .project(_, let path):
-            lines.append("project: \(path)")
-        case .spm, .none:
-            break
+        let mac = #"  mac: "platform=macOS""#
+        func sim(_ name: String) -> String {
+            #"  sim: "platform=iOS Simulator,name=\#(name)""#
+        }
+        let destinations = switch platform {
+        case .iOS: sim(defaultSimulator ?? "iPhone 17 Pro") + "\n" + mac
+        case .macOS: mac
+        case .unknown: sim("iPhone 17 Pro") + "\n" + mac
         }
 
-        lines.append("")
-        lines.append("destinations:")
-        switch platform {
-        case .iOS:
-            let sim = defaultSimulator ?? "iPhone 17 Pro"
-            lines.append("  sim: \"platform=iOS Simulator,name=\(sim)\"")
-            lines.append("  mac: \"platform=macOS\"")
-        case .macOS:
-            lines.append("  mac: \"platform=macOS\"")
-        case .unknown:
-            lines.append("  sim: \"platform=iOS Simulator,name=iPhone 17 Pro\"")
-            lines.append("  mac: \"platform=macOS\"")
-        }
-
-        lines.append("")
-        lines.append("defaults:")
-        if let scheme = primaryScheme {
-            lines.append("  scheme: \(scheme)")
-        }
-        lines.append("  configuration: Debug")
-        lines.append("  destination: \(platform == .macOS ? "mac" : "sim")")
-
-        lines.append("")
-        lines.append("commands:")
-        lines.append("  build:")
-        lines.append("    variants:")
-        lines.append("      release:")
-        lines.append("        configuration: Release")
-        lines.append("")
-        lines.append("  test: {}")
-        lines.append("")
-        lines.append("  clean: {}")
-        lines.append("")
-        lines.append("  archive:")
-        lines.append("    configuration: Release")
-        lines.append("    archive-path: \"./build/\(detection.name).xcarchive\"")
-        lines.append("")
-
-        return lines.joined(separator: "\n")
+        return """
+        # xc configuration for \(detection.name)
+        # Run 'xc destinations' to see all available destinations
+        
+        \(containerLine)
+        destinations:
+        \(destinations)
+        
+        defaults:
+        \(schemeLine)  configuration: Debug
+          destination: \(platform == .macOS ? "mac" : "sim")
+        
+        commands:
+          build:
+            variants:
+              release:
+                configuration: Release
+        
+          test: {}
+        
+          clean: {}
+        
+          archive:
+            configuration: Release
+            archive-path: "./build/\(detection.name).xcarchive"
+        
+        """
     }
 }
