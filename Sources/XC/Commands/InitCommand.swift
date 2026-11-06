@@ -139,8 +139,24 @@ struct InitCommand: AsyncParsableCommand {
     }
 
     func findDefaultiPhoneSimulator() async -> String? {
-        // Search newest runtimes first for an iPhone (prefer Pro non-Max)
-        for (_, names) in await Simulators.available().sorted(by: { $0.key > $1.key }) {
+        await Self.defaultiPhone(in: Simulators.available())
+    }
+
+    // MARK: - Pure logic (testable)
+
+    /// An iPhone for the default `sim` destination, given runtime IDs → available device
+    /// names: newest standard runtime first (device-specific runtimes last), and in each a
+    /// Pro that isn't a Max, else any iPhone.
+    static func defaultiPhone(in runtimes: [String: [String]]) -> String? {
+        let ordered = runtimes
+            .map { (runtime: SimRuntime(id: $0.key), names: $0.value) }
+            .sorted { lhs, rhs in
+                if (lhs.runtime.device == nil) != (rhs.runtime.device == nil) {
+                    return lhs.runtime.device == nil
+                }
+                return lhs.runtime > rhs.runtime
+            }
+        for (_, names) in ordered {
             let iphones = names.filter { $0.contains("iPhone") }
             if let pro = iphones.first(where: { $0.contains("Pro") && !$0.contains("Max") }) {
                 return pro
@@ -149,11 +165,8 @@ struct InitCommand: AsyncParsableCommand {
                 return first
             }
         }
-
         return nil
     }
-
-    // MARK: - Pure logic (testable)
 
     static func pickPrimaryScheme(schemes: [String], detection: ProjectType) -> String? {
         guard !schemes.isEmpty else { return nil }
