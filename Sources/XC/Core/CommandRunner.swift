@@ -1,65 +1,69 @@
 import Foundation
+import Subprocess
+import System
 
 enum CommandRunner {
     /// Execute xcodebuild, optionally piping through a formatter.
     /// - formatter: A shell command to pipe output through (e.g. "xcbeautify --quiet"),
-    ///   or nil/​"raw" for no formatting. Defaults to xcbeautify if not specified.
+    ///   or nil/"raw" for no formatting. Defaults to xcbeautify if not specified.
     static func exec(
         args: [String],
         formatter: String? = nil,
         workingDirectory: String? = nil,
         environment: [String: String]? = nil
-    ) throws {
-        let xcodebuild = Process()
-        xcodebuild.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
-        xcodebuild.arguments = args
-        if let environment {
-            xcodebuild.environment = environment
-        }
-        if let workingDirectory {
-            xcodebuild.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
-        }
+    ) async throws {
+        let xcrun = Executable.path("/usr/bin/xcrun")
+        let arguments = Arguments(args)
+        let env: Subprocess.Environment = environment.map { .exactly($0) } ?? .inherit
+        let directory = workingDirectory.map { FilePath($0) }
 
-        let formatterCommand = resolveFormatter(formatter)
-
-        if let formatterCommand {
-            let pipe = Pipe()
-            xcodebuild.standardOutput = pipe
-            xcodebuild.standardError = pipe
-
-            let fmt = Process()
-            fmt.executableURL = URL(fileURLWithPath: "/bin/sh")
-            fmt.arguments = ["-c", formatterCommand]
-            fmt.standardInput = pipe
-            fmt.standardOutput = FileHandle.standardOutput
-            fmt.standardError = FileHandle.standardError
-
-            try xcodebuild.run()
-            do {
-                try fmt.run()
-            } catch {
-                xcodebuild.terminate()
-                xcodebuild.waitUntilExit()
-                throw error
+        let status: TerminationStatus
+        if let formatterCommand = resolveFormatter(formatter) {
+            // xcodebuild starts only once the formatter is running, so a formatter that
+            // can't launch never leaves xcodebuild writing into an unread pipe. The write
+            // end is handed to xcodebuild, closing with it so the formatter sees EOF.
+            // (With closeAfterSpawningProcess: false, swift-subprocess 1.0.2 keeps a copy
+            // of the descriptor open and the formatter never finishes.)
+            let pipe = try FileDescriptor.pipe()
+            var writeEndHandedOff = false
+            defer {
+                if !writeEndHandedOff {
+                    try? pipe.writeEnd.close()
+                }
             }
-
-            xcodebuild.waitUntilExit()
-            pipe.fileHandleForWriting.closeFile()
-            fmt.waitUntilExit()
-
-            if xcodebuild.terminationStatus != 0 {
-                throw XCError.buildFailed(xcodebuild.terminationStatus)
+            let formatted = try await Subprocess.run(
+                .path("/bin/sh"),
+                arguments: ["-c", formatterCommand],
+                input: .fileDescriptor(pipe.readEnd, closeAfterSpawningProcess: true),
+                output: .currentStandardOutput,
+                error: .currentStandardError
+            ) { _ in
+                writeEndHandedOff = true
+                return try await Subprocess.run(
+                    xcrun,
+                    arguments: arguments,
+                    environment: env,
+                    workingDirectory: directory,
+                    input: .currentStandardInput,
+                    output: .fileDescriptor(pipe.writeEnd, closeAfterSpawningProcess: true),
+                    error: .combinedWithOutput
+                ).terminationStatus
             }
+            status = formatted.closureResult
         } else {
-            xcodebuild.standardOutput = FileHandle.standardOutput
-            xcodebuild.standardError = FileHandle.standardError
+            status = try await Subprocess.run(
+                xcrun,
+                arguments: arguments,
+                environment: env,
+                workingDirectory: directory,
+                input: .currentStandardInput,
+                output: .currentStandardOutput,
+                error: .currentStandardError
+            ).terminationStatus
+        }
 
-            try xcodebuild.run()
-            xcodebuild.waitUntilExit()
-
-            if xcodebuild.terminationStatus != 0 {
-                throw XCError.buildFailed(xcodebuild.terminationStatus)
-            }
+        if let code = status.failureCode {
+            throw XCError.buildFailed(code)
         }
     }
 

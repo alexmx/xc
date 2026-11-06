@@ -67,17 +67,19 @@ struct XCRootTests {
     }
 
     @Test("hooks and run scripts see XC_ROOT in their environment")
-    func hookSeesEnvironment() throws {
-        try withTempDirectory { dir in
-            let out = dir + "/out.txt"
-            try HookRunner.run(
-                "printf '%s' \"$XC_ROOT\" > '\(out)'",
-                label: "test",
-                workingDirectory: dir,
-                quiet: true,
-                environment: ConfigLoader.environment(root: dir)
-            )
-            #expect(try String(contentsOfFile: out, encoding: .utf8) == dir)
-        }
+    func hookSeesEnvironment() async throws {
+        let dir = NSTemporaryDirectory() + "xc-test-\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+
+        let out = dir + "/out.txt"
+        try await HookRunner.run(
+            "printf '%s' \"$XC_ROOT\" > '\(out)'",
+            label: "test",
+            workingDirectory: dir,
+            quiet: true,
+            environment: ConfigLoader.environment(root: dir)
+        )
+        #expect(try String(contentsOfFile: out, encoding: .utf8) == dir)
     }
 }

@@ -51,7 +51,7 @@ struct RunCommand: AsyncParsableCommand {
 
         // Shape 3 — fan-out across members.
         if all || members != nil {
-            try runFanOut(command: command, rootConfig: rootConfig)
+            try await runFanOut(command: command, rootConfig: rootConfig)
             return
         }
 
@@ -59,13 +59,13 @@ struct RunCommand: AsyncParsableCommand {
         let (memberName, commandToken) = Self.parseMemberPath(command)
         let config = try memberName.map { try loadMember($0, rootConfig: rootConfig) } ?? rootConfig
 
-        try execute(commandToken, config: config)
+        try await execute(commandToken, config: config)
     }
 
     // MARK: - Single execution
 
     /// Resolve and run one command against a loaded config, with its own directory as cwd.
-    private func execute(_ commandString: String, config: ConfigLoader.LoadedConfig) throws {
+    private func execute(_ commandString: String, config: ConfigLoader.LoadedConfig) async throws {
         let (commandName, variantName) = Self.parseCommand(commandString)
 
         let resolved = try CommandResolver.resolve(
@@ -85,7 +85,7 @@ struct RunCommand: AsyncParsableCommand {
         }
 
         if let preHook = resolved.hooks?.pre {
-            try HookRunner.run(
+            try await HookRunner.run(
                 preHook,
                 label: "pre-\(commandName)",
                 workingDirectory: projectRoot,
@@ -99,7 +99,7 @@ struct RunCommand: AsyncParsableCommand {
         }
 
         if let script = resolved.script {
-            try HookRunner.run(
+            try await HookRunner.run(
                 script,
                 label: commandName,
                 workingDirectory: projectRoot,
@@ -108,7 +108,7 @@ struct RunCommand: AsyncParsableCommand {
             )
         } else {
             let formatter = Self.formatter(raw: raw, configured: resolved.formatter)
-            try CommandRunner.exec(
+            try await CommandRunner.exec(
                 args: resolved.invocation,
                 formatter: formatter,
                 workingDirectory: projectRoot,
@@ -117,7 +117,7 @@ struct RunCommand: AsyncParsableCommand {
         }
 
         if let postHook = resolved.hooks?.post {
-            try HookRunner.run(
+            try await HookRunner.run(
                 postHook,
                 label: "post-\(commandName)",
                 workingDirectory: projectRoot,
@@ -144,7 +144,7 @@ struct RunCommand: AsyncParsableCommand {
     }
 
     /// Shape 3 — run `command` in each selected member, sequentially.
-    private func runFanOut(command: String, rootConfig: ConfigLoader.LoadedConfig) throws {
+    private func runFanOut(command: String, rootConfig: ConfigLoader.LoadedConfig) async throws {
         let available = ConfigLoader.memberNames(rootConfig.project)
         guard !available.isEmpty else {
             throw XCError.invalidConfig("No members defined. Add a 'members' section to use --all/--members.")
@@ -182,7 +182,7 @@ struct RunCommand: AsyncParsableCommand {
             Self.announce("==> \(label)")
             ran += 1
             do {
-                try execute(command, config: config)
+                try await execute(command, config: config)
             } catch {
                 Self.announce("✗ \(label): \(Self.message(error))")
                 failed.append(label)

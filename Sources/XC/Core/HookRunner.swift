@@ -1,4 +1,6 @@
 import Foundation
+import Subprocess
+import System
 
 enum HookRunner {
     static func run(
@@ -7,30 +9,25 @@ enum HookRunner {
         workingDirectory: String? = nil,
         quiet: Bool = false,
         environment: [String: String]? = nil
-    ) throws {
+    ) async throws {
         if !quiet {
             print("→ Running \(label) hook...")
             // Flush before the child writes, or piped output shows the banner last.
             fflush(stdout)
         }
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = ["-c", command]
-        process.standardOutput = FileHandle.standardOutput
-        process.standardError = FileHandle.standardError
-        if let environment {
-            process.environment = environment
-        }
-        if let workingDirectory {
-            process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
-        }
+        let result = try await Subprocess.run(
+            .path("/bin/sh"),
+            arguments: ["-c", command],
+            environment: environment.map { .exactly($0) } ?? .inherit,
+            workingDirectory: workingDirectory.map { FilePath($0) },
+            input: .currentStandardInput,
+            output: .currentStandardOutput,
+            error: .currentStandardError
+        )
 
-        try process.run()
-        process.waitUntilExit()
-
-        if process.terminationStatus != 0 {
-            throw XCError.hookFailed(label, process.terminationStatus)
+        if let code = result.terminationStatus.failureCode {
+            throw XCError.hookFailed(label, code)
         }
     }
 }
