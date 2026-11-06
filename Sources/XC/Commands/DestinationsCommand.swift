@@ -61,26 +61,27 @@ struct DestinationsCommand: AsyncParsableCommand {
 
         for (runtimeID, names) in devicesMap {
             // Runtime IDs look like "com.apple.CoreSimulator.SimRuntime.iOS-18-5"
-            let runtimeName = formatRuntime(runtimeID)
-            var runtimeDevices: [SimDevice] = []
-
-            for name in names {
-                let platform = runtimeName.contains("iOS") ? "iOS Simulator"
-                    : runtimeName.contains("tvOS") ? "tvOS Simulator"
-                    : runtimeName.contains("watchOS") ? "watchOS Simulator"
-                    : runtimeName.contains("visionOS") ? "visionOS Simulator"
-                    : runtimeName
-
-                runtimeDevices.append(SimDevice(
-                    name: name,
-                    destination: "platform=\(platform),name=\(name)"
-                ))
+            let platform = simulatorPlatform(forRuntimeID: runtimeID)
+            result[formatRuntime(runtimeID)] = names.sorted().map { name in
+                SimDevice(name: name, destination: "platform=\(platform),name=\(name)")
             }
-
-            result[runtimeName] = runtimeDevices.sorted { $0.name < $1.name }
         }
 
         return result
+    }
+
+    /// The xcodebuild destination platform for a simulator runtime ID, e.g.
+    /// "com.apple.CoreSimulator.SimRuntime.xrOS-2-3" → "visionOS Simulator".
+    func simulatorPlatform(forRuntimeID runtimeID: String) -> String {
+        let os = runtimeID
+            .replacingOccurrences(of: "com.apple.CoreSimulator.SimRuntime.", with: "")
+            .prefix { $0 != "-" }
+        switch os {
+        case "iOS", "tvOS", "watchOS", "visionOS": return "\(os) Simulator"
+        // visionOS simulator runtimes still carry the platform's old name, xrOS.
+        case "xrOS": return "visionOS Simulator"
+        default: return formatRuntime(runtimeID)
+        }
     }
 
     /// Convert "com.apple.CoreSimulator.SimRuntime.iOS-18-5" → "iOS 18.5"

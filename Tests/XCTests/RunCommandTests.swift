@@ -114,6 +114,17 @@ struct DestinationsCommandTests {
         #expect(result == "watchOS 11.2")
     }
 
+    @Test("simulator platforms come from the runtime ID", arguments: [
+        ("com.apple.CoreSimulator.SimRuntime.iOS-26-0", "iOS Simulator"),
+        ("com.apple.CoreSimulator.SimRuntime.tvOS-18-0", "tvOS Simulator"),
+        ("com.apple.CoreSimulator.SimRuntime.watchOS-11-2", "watchOS Simulator"),
+        ("com.apple.CoreSimulator.SimRuntime.xrOS-2-3", "visionOS Simulator"),
+        ("com.apple.CoreSimulator.SimRuntime.fooOS-1-0", "fooOS 1.0")
+    ])
+    func simulatorPlatform(runtimeID: String, platform: String) {
+        #expect(command.simulatorPlatform(forRuntimeID: runtimeID) == platform)
+    }
+
     @Test("formatRuntime parses visionOS runtime ID")
     func formatRuntimeVisionOS() {
         let result = command.formatRuntime("com.apple.CoreSimulator.SimRuntime.xrOS-2-3")
