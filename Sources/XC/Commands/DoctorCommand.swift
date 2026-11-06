@@ -71,7 +71,11 @@ struct DoctorCommand: AsyncParsableCommand {
     /// Why xc.yaml couldn't be loaded.
     static func configFileCheck(_ error: Error) -> Check {
         switch error {
-        case XCError.configNotFound: Check("xc.yaml", .fail, "Not found. Run 'xc init' to generate one.")
+        case XCError.configNotFound: Check(
+                "xc.yaml",
+                .fail,
+                "Not found. Run 'xc init' to generate one."
+            )
         case XCError.invalidConfig(let reason): Check("xc.yaml", .fail, reason)
         default: Check("xc.yaml", .fail, error.localizedDescription)
         }

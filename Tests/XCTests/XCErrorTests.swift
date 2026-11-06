@@ -3,12 +3,19 @@ import Testing
 
 @Suite("XCError Tests")
 struct XCErrorTests {
-    @Test("configNotFound message")
-    func configNotFound() {
-        let error = XCError.configNotFound
-        #expect(error.errorDescription?.contains("xc.yaml") == true)
-        #expect(error.errorDescription?.contains("xc.yml") == true)
-        #expect(error.errorDescription?.contains("commands") == true)
+    @Test("configNotFound after walking up names the start folder and its parents")
+    func configNotFoundWalkingUp() {
+        let error = XCError.configNotFound(directory: "/work/app", searchedParents: true)
+        #expect(error.errorDescription == """
+        No xc.yaml (or xc.yml) found in /work/app or any parent directory. \
+        Create one with a 'commands' section to get started.
+        """)
+    }
+
+    @Test("configNotFound in one folder names just that folder")
+    func configNotFoundExact() {
+        let error = XCError.configNotFound(directory: "/work/app/Packages/Core", searchedParents: false)
+        #expect(error.errorDescription == "No xc.yaml (or xc.yml) found in /work/app/Packages/Core.")
     }
 
     @Test("invalidConfig message includes reason")
@@ -57,7 +64,7 @@ struct XCErrorTests {
     }
 
     @Test("localizedDescription is the errorDescription, so callers need no XCError cast", arguments: [
-        XCError.configNotFound,
+        XCError.configNotFound(directory: "/a", searchedParents: true),
         .invalidConfig("bad"),
         .unknownCommand("x", available: ["a"]),
         .unknownVariant("x", "y", available: []),

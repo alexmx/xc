@@ -145,7 +145,7 @@ struct DoctorCommandTests {
 
     @Test("a missing xc.yaml points at xc init")
     func configFileCheck() {
-        #expect(DoctorCommand.configFileCheck(XCError.configNotFound)
+        #expect(DoctorCommand.configFileCheck(XCError.configNotFound(directory: "/a", searchedParents: true))
             == Check("xc.yaml", .fail, "Not found. Run 'xc init' to generate one."))
         #expect(DoctorCommand.configFileCheck(XCError.invalidConfig("bad"))
             == Check("xc.yaml", .fail, "bad"))

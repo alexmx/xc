@@ -75,7 +75,7 @@ enum ConfigLoader {
     /// set to `directory`. Not validated.
     static func decodeProject(inDirectory directory: String) throws -> ProjectConfig {
         guard let path = configFilePath(in: directory) else {
-            throw XCError.configNotFound
+            throw XCError.configNotFound(directory: directory, searchedParents: false)
         }
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let yaml = String(data: data, encoding: .utf8) ?? ""
@@ -115,7 +115,7 @@ enum ConfigLoader {
     static func loadProjectConfig(from directory: String? = nil) throws -> (config: ProjectConfig, root: String) {
         let startDir = absolutePath(directory ?? FileManager.default.currentDirectoryPath)
         guard let root = findConfigDirectory(from: startDir) else {
-            throw XCError.configNotFound
+            throw XCError.configNotFound(directory: startDir, searchedParents: true)
         }
         return try (decodeProject(inDirectory: root), root)
     }

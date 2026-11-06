@@ -1,7 +1,7 @@
 import Foundation
 
 enum XCError: LocalizedError {
-    case configNotFound
+    case configNotFound(directory: String, searchedParents: Bool)
     case invalidConfig(String)
     case unknownCommand(String, available: [String])
     case unknownVariant(String, String, available: [String])
@@ -13,8 +13,11 @@ enum XCError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .configNotFound:
-            "No xc.yaml (or xc.yml) found in the current directory. Create one with a 'commands' section to get started."
+        case .configNotFound(let directory, searchedParents: true):
+            "No xc.yaml (or xc.yml) found in \(directory) or any parent directory. "
+                + "Create one with a 'commands' section to get started."
+        case .configNotFound(let directory, searchedParents: false):
+            "No xc.yaml (or xc.yml) found in \(directory)."
         case .invalidConfig(let reason):
             "Invalid xc.yaml: \(reason)"
         case .unknownCommand(let name, let available):
