@@ -93,7 +93,7 @@ struct RunCommand: AsyncParsableCommand {
             )
         }
 
-        if verbose {
+        if Self.isVerbose(flag: verbose, config: config) {
             print("$ \(Self.commandLine(resolved.action))")
             fflush(stdout)
         }
@@ -206,6 +206,11 @@ struct RunCommand: AsyncParsableCommand {
     /// value: nil means "use the default", which is xcbeautify.
     static func formatter(raw: Bool, configured: String?) -> String? {
         raw ? "raw" : configured
+    }
+
+    /// `-v`, or `settings.verbose` (the project's overriding the global config's).
+    static func isVerbose(flag: Bool, config: ConfigLoader.LoadedConfig) -> Bool {
+        flag || (config.project.settings?.verbose ?? config.global?.settings?.verbose ?? false)
     }
 
     /// What `--dry-run` and `-v` print for a resolved command: a line that pastes back

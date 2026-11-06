@@ -3,6 +3,26 @@ import Testing
 
 @Suite("RunCommand Tests")
 struct RunCommandTests {
+    private func config(project: Bool?, global: Bool?) -> ConfigLoader.LoadedConfig {
+        ConfigLoader.LoadedConfig(
+            project: ProjectConfig(settings: Settings(verbose: project)),
+            global: GlobalConfig(settings: Settings(verbose: global)),
+            projectRoot: "/p"
+        )
+    }
+
+    @Test("settings.verbose turns on -v, the project setting overriding the global one", arguments: [
+        (false, nil, nil, false),
+        (false, true, nil, true),
+        (false, nil, true, true),
+        (false, false, true, false),
+        (false, true, false, true),
+        (true, false, false, true)
+    ] as [(Bool, Bool?, Bool?, Bool)])
+    func verboseSetting(flag: Bool, project: Bool?, global: Bool?, expected: Bool) {
+        #expect(RunCommand.isVerbose(flag: flag, config: config(project: project, global: global)) == expected)
+    }
+
     @Test("--raw disables formatting even when none is configured")
     func rawDisablesDefaultFormatter() {
         let formatter = RunCommand.formatter(raw: true, configured: nil)

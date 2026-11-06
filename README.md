@@ -263,7 +263,7 @@ settings:
   verbose: false
 ```
 
-`formatter` is any shell command xcodebuild output is piped through; `raw` (or `--raw` on a single run) disables it. A project `xc.yaml` can set its own `settings` block to override the global one.
+`formatter` is any shell command xcodebuild output is piped through; `raw` (or `--raw` on a single run) disables it. `verbose: true` prints each resolved command before running it, as `-v` does. A project `xc.yaml` can set its own `settings` block to override the global one.
 
 ### Config reference
 
