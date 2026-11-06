@@ -10,6 +10,7 @@
 #   xc package/build         # build the Swift Package example
 #   xc -C Examples/Package swift-test
 #   xc build --all --dry-run # preview building every example member
+#   xc gate                  # lint, build and test, with a timing summary
 
 commands:
   build:
@@ -21,6 +22,8 @@ commands:
     variants:
       fix:
         run: "swiftformat Sources Tests"
+  gate:
+    steps: [lint, build, test]
 
 members:
   app: Examples/App

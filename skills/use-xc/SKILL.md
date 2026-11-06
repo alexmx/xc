@@ -116,9 +116,10 @@ settings:                           # optional; also valid in global config
 ```
 
 - **Root fields**: `project` *or* `workspace` (mutually exclusive), `destinations`, `defaults`, `commands` (required), `settings`, `members`.
-- **Command fields**: `run`, `scheme`, `configuration`, `destination` (string or list), `xcconfig`, `test-plan`, `result-bundle-path`, `derived-data-path`, `archive-path`, `extra-args` (list), `hooks` (`pre`/`post`), `variants`.
+- **Command fields**: `run`, `scheme`, `configuration`, `destination` (string or list), `xcconfig`, `test-plan`, `result-bundle-path`, `derived-data-path`, `archive-path`, `extra-args` (list), `hooks` (`pre`/`post`), `variants`, `steps` (list).
 - **Command name = xcodebuild action** (unless `run:`): `build`/`test`/`clean`/`archive`, plus `build-for-testing`, `test-without-building` (`-testPlan` applies), `analyze`, etc. Pair build-for-testing (compile once) + test-without-building (fast reruns).
 - **`run:` commands**: plain shell (lint/format/codegen); support hooks, variants, `extra-args`, `--dry-run`.
+- **`steps:` commands**: run other commands in order (`steps: [lint, build:release, core/test]`), fail-fast unless `--continue`, with a per-step time summary. Can't mix with `run:`/xcodebuild settings or take args after `--`.
 - **Env vars**: `${VAR}` / `${VAR:-default}` anywhere. Built-in `${XC_ROOT}` = absolute dir of the `xc.yaml` being run (a member's own dir in a member), also exported to xcodebuild, scripts and hooks. Use it for absolute paths (e.g. `SYMROOT=${XC_ROOT}/Build`), not `$PWD`.
 - **Hooks**: a command's hooks run for all its variants; a variant overrides them or disables with `hooks: {}`.
 - **`settings`** (`formatter`, `verbose`): project `xc.yaml` or global config. `formatter` = shell command output is piped through: `xcbeautify` (default), `xcpretty`, `raw`, or with flags.

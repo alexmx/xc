@@ -177,6 +177,27 @@ commands:
   loc:      { run: "find Sources -name '*.swift' | xargs wc -l | tail -1" }
 ```
 
+### Steps
+
+A `steps:` command runs other commands in order, each exactly as `xc <step>` would, and stops at the first failure. Steps use the command-line syntax, so variants (`build:release`) and members (`core/test`) work:
+
+```yaml
+commands:
+  gate:
+    steps: [lint, build:release, test]
+```
+
+Each step gets an `==> step` header, then a summary shows how long each one took:
+
+```
+✓ lint            2.1s
+✓ build:release  41.3s
+✗ test           12.8s  Command 'test' exited with code 1.
+Error: Step 'test' failed.
+```
+
+`--continue` runs every step and lists all failures; `--raw`, `-v`, `--dest` and `--dry-run` apply to each step. The whole chain is checked before anything runs, so an unknown step or a loop fails up front. A steps command only lists commands: it can't also set `run:` or xcodebuild settings, and takes no arguments after `--`. Its `hooks` run once around the whole chain.
+
 ### Any xcodebuild action
 
 A command with no `run:` passes its name to `xcodebuild` as the action, so any action works, not just `build`/`test`/`clean`/`archive`:
@@ -283,6 +304,7 @@ settings:
 | `extra-args` | list | Additional xcodebuild arguments |
 | `hooks` | object | `pre` and `post` shell commands |
 | `variants` | map | Named variant overrides |
+| `steps` | list | Other commands to run in order (makes this a steps command) |
 
 ## Diagnostics
 
