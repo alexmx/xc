@@ -792,5 +792,5 @@ private func resolve(
 }
 
 private func loaded(_ project: ProjectConfig, global: GlobalConfig? = nil) -> ConfigLoader.LoadedConfig {
-    ConfigLoader.LoadedConfig(project: project, global: global)
+    ConfigLoader.LoadedConfig(project: project, global: global, projectRoot: "/repo")
 }

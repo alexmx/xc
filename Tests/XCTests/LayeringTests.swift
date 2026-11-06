@@ -36,7 +36,8 @@ struct LayeringTests {
                 defaults: present.contains(.project) ? layer("project") : nil,
                 commands: [action: command]
             ),
-            global: GlobalConfig(defaults: layer("global"))
+            global: GlobalConfig(defaults: layer("global")),
+            projectRoot: "/repo"
         )
         return try CommandResolver.resolve(
             commandName: action,

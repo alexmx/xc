@@ -7,7 +7,8 @@ enum ConfigLoader {
         let global: GlobalConfig?
         let projectRoot: String
 
-        init(project: ProjectConfig, global: GlobalConfig?, projectRoot: String = ".") {
+        /// `projectRoot` is absolute: it becomes `XC_ROOT`.
+        init(project: ProjectConfig, global: GlobalConfig?, projectRoot: String) {
             self.project = project
             self.global = global
             self.projectRoot = projectRoot
