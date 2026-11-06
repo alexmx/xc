@@ -14,11 +14,6 @@ struct ListCommand: ParsableCommand {
         let config = try ConfigLoader.load()
         let commands = config.project.commands ?? [:]
 
-        guard !commands.isEmpty else {
-            print("No commands defined in xc.yaml.")
-            return
-        }
-
         // Calculate column width so summaries align across commands, variants, and defaults
         var prefixWidths: [Int] = [2 + "defaults".count] // "  defaults"
         for (name, command) in commands {
@@ -31,7 +26,7 @@ struct ListCommand: ParsableCommand {
 
         // Show defaults if defined
         if let defaults = config.project.defaults {
-            let summary = summarizeVariant(defaults)
+            let summary = summarize(defaults)
             if !summary.isEmpty {
                 let prefix = "  defaults".padding(toLength: columnWidth, withPad: " ", startingAt: 0)
                 print("\(prefix) \(summary)")
@@ -40,7 +35,7 @@ struct ListCommand: ParsableCommand {
         }
 
         for (name, command) in commands.sorted(by: { $0.key < $1.key }) {
-            let summary = summarizeCommand(command)
+            let summary = summarize(command)
             let prefix = "  \(name)".padding(toLength: columnWidth, withPad: " ", startingAt: 0)
             if summary.isEmpty {
                 print(prefix)
@@ -50,7 +45,7 @@ struct ListCommand: ParsableCommand {
 
             let variants = command.variants ?? [:]
             for (variantName, variant) in variants.sorted(by: { $0.key < $1.key }) {
-                let variantSummary = summarizeVariant(variant)
+                let variantSummary = summarize(variant)
                 let variantPrefix = "    :\(variantName)".padding(toLength: columnWidth, withPad: " ", startingAt: 0)
                 if variantSummary.isEmpty {
                     print(variantPrefix)
@@ -85,18 +80,12 @@ struct ListCommand: ParsableCommand {
         }
     }
 
-    static func summarizeCommand(_ command: CommandConfig) -> String {
-        if let run = command.run {
+    /// One line describing a command, variant or the defaults: its `run:` script, or its settings.
+    static func summarize(_ config: CommandConfig) -> String {
+        if let run = config.run {
             return "$ \(run)"
         }
-        return summarizeVariant(command)
-    }
-
-    static func summarizeVariant(_ variant: CommandConfig) -> String {
-        if let run = variant.run {
-            return "$ \(run)"
-        }
-        return summarizeParts(variant).joined(separator: ", ")
+        return summarizeParts(config).joined(separator: ", ")
     }
 
     static func summarizeParts(_ config: CommandConfig) -> [String] {
@@ -122,6 +111,9 @@ struct ListCommand: ParsableCommand {
         }
         if let ddp = config.derivedDataPath {
             parts.append("derived-data-path: \(ddp)")
+        }
+        if let archivePath = config.archivePath {
+            parts.append("archive-path: \(archivePath)")
         }
         if let args = config.extraArgs, !args.isEmpty {
             parts.append("extra-args: \(args.joined(separator: " "))")

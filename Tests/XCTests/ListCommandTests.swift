@@ -3,91 +3,97 @@ import Testing
 
 @Suite("ListCommand Tests")
 struct ListCommandTests {
-    @Test("summarizeVariant with configuration only")
+    @Test("summarize with configuration only")
     func summarizeConfiguration() {
         let variant = CommandConfig(configuration: "Release")
-        let result = ListCommand.summarizeVariant(variant)
+        let result = ListCommand.summarize(variant)
         #expect(result == "configuration: Release")
     }
 
-    @Test("summarizeVariant with scheme only")
+    @Test("summarize with scheme only")
     func summarizeScheme() {
         let variant = CommandConfig(scheme: "Core")
-        let result = ListCommand.summarizeVariant(variant)
+        let result = ListCommand.summarize(variant)
         #expect(result == "scheme: Core")
     }
 
-    @Test("summarizeVariant with destination only")
+    @Test("summarize with destination only")
     func summarizeDestination() {
         let variant = CommandConfig(destination: "sim-ipad")
-        let result = ListCommand.summarizeVariant(variant)
+        let result = ListCommand.summarize(variant)
         #expect(result == "destination: sim-ipad")
     }
 
-    @Test("summarizeVariant with extra-args")
+    @Test("summarize with extra-args")
     func summarizeExtraArgs() {
         let variant = CommandConfig(extraArgs: ["-enableCodeCoverage", "YES"])
-        let result = ListCommand.summarizeVariant(variant)
+        let result = ListCommand.summarize(variant)
         #expect(result == "extra-args: -enableCodeCoverage YES")
     }
 
-    @Test("summarizeVariant with multiple fields")
+    @Test("summarize with multiple fields")
     func summarizeMultiple() {
         let variant = CommandConfig(
             scheme: "Core",
             configuration: "Release",
             destination: "device"
         )
-        let result = ListCommand.summarizeVariant(variant)
+        let result = ListCommand.summarize(variant)
         #expect(result == "scheme: Core, configuration: Release, destination: device")
     }
 
-    @Test("summarizeVariant with empty variant")
+    @Test("summarize with empty variant")
     func summarizeEmpty() {
         let variant = CommandConfig()
-        let result = ListCommand.summarizeVariant(variant)
+        let result = ListCommand.summarize(variant)
         #expect(result == "")
     }
 
-    @Test("summarizeVariant with test-plan")
+    @Test("summarize with test-plan")
     func summarizeTestPlan() {
         let variant = CommandConfig(testPlan: "IntegrationTests")
-        let result = ListCommand.summarizeVariant(variant)
+        let result = ListCommand.summarize(variant)
         #expect(result == "test-plan: IntegrationTests")
     }
 
-    @Test("summarizeCommand shows run for script command")
+    @Test("summarize shows run for script command")
     func summarizeScriptCommand() {
         let command = CommandConfig(run: "swiftlint lint --strict")
-        let result = ListCommand.summarizeCommand(command)
+        let result = ListCommand.summarize(command)
         #expect(result == "$ swiftlint lint --strict")
     }
 
-    @Test("summarizeVariant shows run for script variant")
+    @Test("summarize shows run for script variant")
     func summarizeScriptVariant() {
         let variant = CommandConfig(run: "swiftlint lint --fix")
-        let result = ListCommand.summarizeVariant(variant)
+        let result = ListCommand.summarize(variant)
         #expect(result == "$ swiftlint lint --fix")
     }
 
-    @Test("summarizeVariant with xcconfig")
+    @Test("summarize shows archive-path")
+    func summarizeArchivePath() {
+        let command = CommandConfig(configuration: "Release", archivePath: "./build/App.xcarchive")
+        #expect(ListCommand.summarize(command) == "configuration: Release, archive-path: ./build/App.xcarchive")
+    }
+
+    @Test("summarize with xcconfig")
     func summarizeXcconfig() {
         let variant = CommandConfig(xcconfig: "Release.xcconfig")
-        let result = ListCommand.summarizeVariant(variant)
+        let result = ListCommand.summarize(variant)
         #expect(result == "xcconfig: Release.xcconfig")
     }
 
-    @Test("summarizeVariant with derived-data-path")
+    @Test("summarize with derived-data-path")
     func summarizeDerivedDataPath() {
         let variant = CommandConfig(derivedDataPath: "./DerivedData")
-        let result = ListCommand.summarizeVariant(variant)
+        let result = ListCommand.summarize(variant)
         #expect(result == "derived-data-path: ./DerivedData")
     }
 
-    @Test("summarizeVariant with result-bundle-path")
+    @Test("summarize with result-bundle-path")
     func summarizeResultBundlePath() {
         let variant = CommandConfig(resultBundlePath: "./build/tests.xcresult")
-        let result = ListCommand.summarizeVariant(variant)
+        let result = ListCommand.summarize(variant)
         #expect(result == "result-bundle-path: ./build/tests.xcresult")
     }
 
