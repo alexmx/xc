@@ -11,6 +11,7 @@ enum XCError: LocalizedError {
     case fanOutFailed([String])
     case buildFailed(Int32)
     case hookFailed(String, Int32)
+    case scriptFailed(String, Int32)
 
     var errorDescription: String? {
         switch self {
@@ -39,6 +40,8 @@ enum XCError: LocalizedError {
             "Failed in \(names.count) member(s): \(names.sorted().joined(separator: ", "))."
         case .buildFailed(let code):
             "xcodebuild exited with code \(code)."
+        case .scriptFailed(let name, let code):
+            "Command '\(name)' exited with code \(code)."
         case .hookFailed(let label, let code):
             "Hook '\(label)' failed with exit code \(code)."
         }

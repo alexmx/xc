@@ -23,26 +23,21 @@ struct RunnerTests {
         }
     }
 
-    @Test("a failing hook reports its exit code")
-    func hookExitCode() async {
-        let message = await failure {
-            try await HookRunner.run("exit 3", label: "pre-build", quiet: true)
-        }
-        #expect(message == XCError.hookFailed("pre-build", 3).errorDescription)
+    @Test("a failing script returns its exit code, a passing one nil")
+    func shellExitCode() async throws {
+        #expect(try await ShellRunner.run("exit 3") == 3)
+        #expect(try await ShellRunner.run("true") == nil)
     }
 
-    @Test("a hook killed by a signal reports the signal number")
-    func hookSignal() async {
-        let message = await failure {
-            try await HookRunner.run("kill -TERM $$", label: "post-build", quiet: true)
-        }
-        #expect(message == XCError.hookFailed("post-build", 15).errorDescription)
+    @Test("a script killed by a signal returns the signal number")
+    func shellSignal() async throws {
+        #expect(try await ShellRunner.run("kill -TERM $$") == 15)
     }
 
-    @Test("a hook runs in the working directory")
-    func hookWorkingDirectory() async throws {
+    @Test("a script runs in the working directory")
+    func shellWorkingDirectory() async throws {
         try await withTempDirectory { dir in
-            try await HookRunner.run("echo ok > out.txt", label: "test", workingDirectory: dir, quiet: true)
+            _ = try await ShellRunner.run("echo ok > out.txt", in: dir)
             #expect(FileManager.default.fileExists(atPath: dir + "/out.txt"))
         }
     }

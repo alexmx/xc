@@ -87,12 +87,7 @@ struct RunCommand: AsyncParsableCommand {
         }
 
         if let preHook = resolved.hooks?.pre {
-            try await HookRunner.run(
-                preHook,
-                label: "pre-\(commandName)",
-                workingDirectory: projectRoot,
-                environment: environment
-            )
+            try await runHook(preHook, label: "pre-\(commandName)", config: config)
         }
 
         if Self.isVerbose(flag: verbose, config: config) {
@@ -102,13 +97,9 @@ struct RunCommand: AsyncParsableCommand {
 
         switch resolved.action {
         case .script(let script):
-            try await HookRunner.run(
-                script,
-                label: commandName,
-                workingDirectory: projectRoot,
-                quiet: true,
-                environment: environment
-            )
+            if let code = try await ShellRunner.run(script, in: projectRoot, environment: environment) {
+                throw XCError.scriptFailed(commandName, code)
+            }
         case .xcodebuild(let arguments, let configuredFormatter):
             try await CommandRunner.exec(
                 args: arguments,
@@ -119,12 +110,14 @@ struct RunCommand: AsyncParsableCommand {
         }
 
         if let postHook = resolved.hooks?.post {
-            try await HookRunner.run(
-                postHook,
-                label: "post-\(commandName)",
-                workingDirectory: projectRoot,
-                environment: environment
-            )
+            try await runHook(postHook, label: "post-\(commandName)", config: config)
+        }
+    }
+
+    private func runHook(_ script: String, label: String, config: ConfigLoader.LoadedConfig) async throws {
+        Self.announce("→ Running \(label) hook...")
+        if let code = try await ShellRunner.run(script, in: config.projectRoot, environment: config.environment) {
+            throw XCError.hookFailed(label, code)
         }
     }
 

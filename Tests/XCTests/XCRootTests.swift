@@ -73,11 +73,9 @@ struct XCRootTests {
         defer { try? FileManager.default.removeItem(atPath: dir) }
 
         let out = dir + "/out.txt"
-        try await HookRunner.run(
+        _ = try await ShellRunner.run(
             "printf '%s' \"$XC_ROOT\" > '\(out)'",
-            label: "test",
-            workingDirectory: dir,
-            quiet: true,
+            in: dir,
             environment: ConfigLoader.environment(root: dir)
         )
         #expect(try String(contentsOfFile: out, encoding: .utf8) == dir)
