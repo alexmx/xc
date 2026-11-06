@@ -43,7 +43,7 @@ struct ProjectConfig: Codable, Sendable {
     var destinations: [String: String]?
     var defaults: CommandConfig?
     var commands: [String: CommandConfig]?
-    var settings: GlobalSettings?
+    var settings: Settings?
     /// Nested xc.yaml projects, keyed by member name → directory path (relative to this config).
     var members: [String: String]?
 }

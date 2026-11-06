@@ -1,9 +1,10 @@
 struct GlobalConfig: Codable, Sendable {
     var defaults: CommandConfig?
-    var settings: GlobalSettings?
+    var settings: Settings?
 }
 
-struct GlobalSettings: Codable, Sendable {
+/// `settings` in a project or global config.
+struct Settings: Codable, Sendable {
     var formatter: String?
     var verbose: Bool?
 }

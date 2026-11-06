@@ -48,7 +48,7 @@ struct CommandResolverTests {
         ),
         global: GlobalConfig(
             defaults: CommandConfig(scheme: "GlobalDefault"),
-            settings: GlobalSettings(formatter: "xcbeautify")
+            settings: Settings(formatter: "xcbeautify")
         )
     )
 
@@ -810,10 +810,10 @@ struct CommandResolverTests {
         let config = ConfigLoader.LoadedConfig(
             project: ProjectConfig(
                 commands: ["build": CommandConfig()],
-                settings: GlobalSettings(formatter: "xcbeautify --disable-logging")
+                settings: Settings(formatter: "xcbeautify --disable-logging")
             ),
             global: GlobalConfig(
-                settings: GlobalSettings(formatter: "xcbeautify")
+                settings: Settings(formatter: "xcbeautify")
             )
         )
 
@@ -833,7 +833,7 @@ struct CommandResolverTests {
         let config = ConfigLoader.LoadedConfig(
             project: ProjectConfig(
                 commands: ["build": CommandConfig()],
-                settings: GlobalSettings(formatter: "xcpretty")
+                settings: Settings(formatter: "xcpretty")
             ),
             global: nil
         )
