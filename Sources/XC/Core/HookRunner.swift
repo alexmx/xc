@@ -10,6 +10,8 @@ enum HookRunner {
     ) throws {
         if !quiet {
             print("→ Running \(label) hook...")
+            // Flush before the child writes, or piped output shows the banner last.
+            fflush(stdout)
         }
 
         let process = Process()
