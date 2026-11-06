@@ -150,4 +150,30 @@ struct DoctorCommandTests {
         #expect(DoctorCommand.configFileCheck(XCError.invalidConfig("bad"))
             == Check("xc.yaml", .fail, "bad"))
     }
+
+    @Test("the global config is found as config.yaml or config.yml, preferring .yaml")
+    func globalConfigPath() throws {
+        let home = NSTemporaryDirectory() + "xc-test-\(UUID().uuidString)"
+        let dir = home + "/.config/xc"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: home) }
+
+        #expect(ConfigLoader.globalConfigPath(home: home) == nil)
+        try "settings: {}\n".write(toFile: dir + "/config.yml", atomically: true, encoding: .utf8)
+        #expect(ConfigLoader.globalConfigPath(home: home) == dir + "/config.yml")
+        try "settings: {}\n".write(toFile: dir + "/config.yaml", atomically: true, encoding: .utf8)
+        #expect(ConfigLoader.globalConfigPath(home: home) == dir + "/config.yaml")
+    }
+
+    @Test("the global config check reports the file it found")
+    func globalConfigCheckPath() throws {
+        let dir = NSTemporaryDirectory() + "xc-test-\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        let path = dir + "/config.yml"
+        try "settings: {}\n".write(toFile: path, atomically: true, encoding: .utf8)
+
+        #expect(DoctorCommand.globalConfigCheck(path: path) == Check("Global config", .ok, path))
+        #expect(DoctorCommand.globalConfigCheck(path: nil) == Check("Global config", .skip, "not found (optional)"))
+    }
 }

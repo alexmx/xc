@@ -138,11 +138,11 @@ struct DoctorCommand: AsyncParsableCommand {
             : Check("xcbeautify", .warn, "Not installed. Output will be raw. Install: brew install xcbeautify")
     }
 
-    static func globalConfigCheck() -> Check {
+    static func globalConfigCheck(path: String? = ConfigLoader.globalConfigPath()) -> Check {
+        guard let path else { return Check("Global config", .skip, "not found (optional)") }
         do {
-            return try ConfigLoader.loadGlobalConfig() != nil
-                ? Check("Global config", .ok, "~/.config/xc/config.yaml")
-                : Check("Global config", .skip, "not found (optional)")
+            _ = try ConfigLoader.loadGlobalConfig(at: path)
+            return Check("Global config", .ok, (path as NSString).abbreviatingWithTildeInPath)
         } catch {
             return Check("Global config", .warn, "Parse error: \(error.localizedDescription)")
         }

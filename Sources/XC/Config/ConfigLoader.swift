@@ -181,13 +181,14 @@ enum ConfigLoader {
     static func loadGlobalConfig(
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) throws -> GlobalConfig? {
-        let configDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/xc").path
-        let path = ["config.yaml", "config.yml"]
-            .map { configDir + "/" + $0 }
-            .first { FileManager.default.fileExists(atPath: $0) }
-        guard let path else {
-            return nil
-        }
+        guard let path = globalConfigPath() else { return nil }
+        return try loadGlobalConfig(at: path, environment: environment)
+    }
+
+    static func loadGlobalConfig(
+        at path: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) throws -> GlobalConfig {
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let yaml = String(data: data, encoding: .utf8) ?? ""
         do {
@@ -195,5 +196,12 @@ enum ConfigLoader {
         } catch {
             throw XCError.invalidConfig("Global config: \(describeYAMLError(error))")
         }
+    }
+
+    /// `~/.config/xc/config.yaml`, else `config.yml`, whichever exists first.
+    static func globalConfigPath(home: String = FileManager.default.homeDirectoryForCurrentUser.path) -> String? {
+        ["config.yaml", "config.yml"]
+            .map { home + "/.config/xc/" + $0 }
+            .first { FileManager.default.fileExists(atPath: $0) }
     }
 }
