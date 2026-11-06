@@ -44,7 +44,7 @@ struct LayeringTests {
             config: config,
             destOverride: nil,
             extraArgs: []
-        ).invocation
+        ).xcodebuild().arguments
     }
 
     @Test("defaultable settings come from the most specific layer", arguments: Layer.allCases)

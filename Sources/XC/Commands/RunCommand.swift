@@ -80,7 +80,7 @@ struct RunCommand: AsyncParsableCommand {
         let environment = config.environment
 
         if dryRun {
-            print(resolved.script ?? Self.shellEscape(resolved.invocation))
+            print(Self.commandLine(resolved.action))
             return
         }
 
@@ -94,11 +94,12 @@ struct RunCommand: AsyncParsableCommand {
         }
 
         if verbose {
-            print("$ \(resolved.script ?? Self.shellEscape(resolved.invocation))")
+            print("$ \(Self.commandLine(resolved.action))")
             fflush(stdout)
         }
 
-        if let script = resolved.script {
+        switch resolved.action {
+        case .script(let script):
             try await HookRunner.run(
                 script,
                 label: commandName,
@@ -106,11 +107,10 @@ struct RunCommand: AsyncParsableCommand {
                 quiet: true,
                 environment: environment
             )
-        } else {
-            let formatter = Self.formatter(raw: raw, configured: resolved.formatter)
+        case .xcodebuild(let arguments, let configuredFormatter):
             try await CommandRunner.exec(
-                args: resolved.invocation,
-                formatter: formatter,
+                args: arguments,
+                formatter: Self.formatter(raw: raw, configured: configuredFormatter),
                 workingDirectory: projectRoot,
                 environment: environment
             )
@@ -206,6 +206,14 @@ struct RunCommand: AsyncParsableCommand {
     /// value: nil means "use the default", which is xcbeautify.
     static func formatter(raw: Bool, configured: String?) -> String? {
         raw ? "raw" : configured
+    }
+
+    /// What `--dry-run` and `-v` print for a resolved command.
+    static func commandLine(_ action: CommandResolver.ResolvedCommand.Action) -> String {
+        switch action {
+        case .script(let script): script
+        case .xcodebuild(let arguments, _): shellEscape(arguments)
+        }
     }
 
     static func shellEscape(_ args: [String]) -> String {

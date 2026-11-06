@@ -1,9 +1,15 @@
 enum CommandResolver {
     struct ResolvedCommand: Sendable {
-        let invocation: [String]
-        let script: String?
+        enum Action: Equatable {
+            /// A `run:` command, executed with `/bin/sh -c`.
+            case script(String)
+            /// An xcodebuild invocation (starting with "xcodebuild"); output is piped
+            /// through `formatter` (see `CommandRunner.resolveFormatter`).
+            case xcodebuild(arguments: [String], formatter: String?)
+        }
+
+        let action: Action
         let hooks: HookConfig?
-        let formatter: String?
     }
 
     static func resolve(
@@ -29,8 +35,6 @@ enum CommandResolver {
         let allLayers = commandLayers + [config.project.defaults, config.global?.defaults].compactMap(\.self)
 
         let hooks = first(\.hooks, in: commandLayers)
-        let formatter = config.project.settings?.formatter
-            ?? config.global?.settings?.formatter
 
         let configExtraArgs = first(\.extraArgs, in: commandLayers) ?? []
 
@@ -48,7 +52,7 @@ enum CommandResolver {
             if !extraArgs.isEmpty {
                 fullScript += " " + extraArgs.map(shellQuote).joined(separator: " ")
             }
-            return ResolvedCommand(invocation: [], script: fullScript, hooks: hooks, formatter: formatter)
+            return ResolvedCommand(action: .script(fullScript), hooks: hooks)
         }
 
         let scheme = first(\.scheme, in: allLayers)
@@ -105,7 +109,8 @@ enum CommandResolver {
         args += configExtraArgs
         args += extraArgs
 
-        return ResolvedCommand(invocation: args, script: nil, hooks: hooks, formatter: formatter)
+        let formatter = config.project.settings?.formatter ?? config.global?.settings?.formatter
+        return ResolvedCommand(action: .xcodebuild(arguments: args, formatter: formatter), hooks: hooks)
     }
 
     /// The setting from the first layer that sets it.

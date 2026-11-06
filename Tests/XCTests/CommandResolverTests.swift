@@ -73,7 +73,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation == [
+        #expect(try resolved.xcodebuild().arguments == [
             "xcodebuild", "build",
             "-project", "MyApp.xcodeproj",
             "-scheme", "MyApp",
@@ -92,7 +92,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation == [
+        #expect(try resolved.xcodebuild().arguments == [
             "xcodebuild", "build",
             "-project", "MyApp.xcodeproj",
             "-scheme", "MyApp",
@@ -111,7 +111,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation == [
+        #expect(try resolved.xcodebuild().arguments == [
             "xcodebuild", "test",
             "-project", "MyApp.xcodeproj",
             "-scheme", "MyAppTests",
@@ -131,7 +131,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation == [
+        #expect(try resolved.xcodebuild().arguments == [
             "xcodebuild", "clean",
             "-project", "MyApp.xcodeproj",
             "-scheme", "MyApp",
@@ -152,8 +152,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("-archivePath"))
-        #expect(resolved.invocation.contains("./build/MyApp.xcarchive"))
+        #expect(try resolved.xcodebuild().arguments.contains("-archivePath"))
+        #expect(try resolved.xcodebuild().arguments.contains("./build/MyApp.xcarchive"))
     }
 
     // MARK: - xcconfig
@@ -177,8 +177,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("-xcconfig"))
-        #expect(resolved.invocation.contains("Config/Release.xcconfig"))
+        #expect(try resolved.xcodebuild().arguments.contains("-xcconfig"))
+        #expect(try resolved.xcodebuild().arguments.contains("Config/Release.xcconfig"))
     }
 
     @Test("xcconfig variant overrides command")
@@ -205,8 +205,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("Config/Release.xcconfig"))
-        #expect(!resolved.invocation.contains("Config/Debug.xcconfig"))
+        #expect(try resolved.xcodebuild().arguments.contains("Config/Release.xcconfig"))
+        #expect(try !resolved.xcodebuild().arguments.contains("Config/Debug.xcconfig"))
     }
 
     @Test("xcconfig placed before scheme in invocation")
@@ -231,8 +231,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        let xcconfigIdx = try #require(resolved.invocation.firstIndex(of: "-xcconfig"))
-        let schemeIdx = try #require(resolved.invocation.firstIndex(of: "-scheme"))
+        let xcconfigIdx = try #require(try resolved.xcodebuild().arguments.firstIndex(of: "-xcconfig"))
+        let schemeIdx = try #require(try resolved.xcodebuild().arguments.firstIndex(of: "-scheme"))
         #expect(xcconfigIdx < schemeIdx)
     }
 
@@ -256,7 +256,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(!resolved.invocation.contains("-archivePath"))
+        #expect(try !resolved.xcodebuild().arguments.contains("-archivePath"))
     }
 
     // MARK: - Test Plan
@@ -283,8 +283,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("-testPlan"))
-        #expect(resolved.invocation.contains("UnitTests"))
+        #expect(try resolved.xcodebuild().arguments.contains("-testPlan"))
+        #expect(try resolved.xcodebuild().arguments.contains("UnitTests"))
     }
 
     @Test("testPlan only added for test actions")
@@ -306,7 +306,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(!resolved.invocation.contains("-testPlan"))
+        #expect(try !resolved.xcodebuild().arguments.contains("-testPlan"))
     }
 
     @Test("testPlan variant overrides command testPlan")
@@ -333,8 +333,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("IntegrationTests"))
-        #expect(!resolved.invocation.contains("UnitTests"))
+        #expect(try resolved.xcodebuild().arguments.contains("IntegrationTests"))
+        #expect(try !resolved.xcodebuild().arguments.contains("UnitTests"))
     }
 
     @Test("testPlan works for test-without-building action")
@@ -359,8 +359,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("-testPlan"))
-        #expect(resolved.invocation.contains("Smoke"))
+        #expect(try resolved.xcodebuild().arguments.contains("-testPlan"))
+        #expect(try resolved.xcodebuild().arguments.contains("Smoke"))
     }
 
     // MARK: - Result Bundle Path
@@ -387,8 +387,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("-resultBundlePath"))
-        #expect(resolved.invocation.contains("./results.xcresult"))
+        #expect(try resolved.xcodebuild().arguments.contains("-resultBundlePath"))
+        #expect(try resolved.xcodebuild().arguments.contains("./results.xcresult"))
     }
 
     @Test("resultBundlePath only added for test actions")
@@ -410,7 +410,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(!resolved.invocation.contains("-resultBundlePath"))
+        #expect(try !resolved.xcodebuild().arguments.contains("-resultBundlePath"))
     }
 
     @Test("resultBundlePath variant overrides command")
@@ -437,8 +437,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("/tmp/ci.xcresult"))
-        #expect(!resolved.invocation.contains("./local.xcresult"))
+        #expect(try resolved.xcodebuild().arguments.contains("/tmp/ci.xcresult"))
+        #expect(try !resolved.xcodebuild().arguments.contains("./local.xcresult"))
     }
 
     // MARK: - Derived Data Path
@@ -462,8 +462,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("-derivedDataPath"))
-        #expect(resolved.invocation.contains("./DerivedData"))
+        #expect(try resolved.xcodebuild().arguments.contains("-derivedDataPath"))
+        #expect(try resolved.xcodebuild().arguments.contains("./DerivedData"))
     }
 
     @Test("derivedDataPath from defaults applies to all actions")
@@ -486,8 +486,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("-derivedDataPath"))
-        #expect(resolved.invocation.contains("./DD"))
+        #expect(try resolved.xcodebuild().arguments.contains("-derivedDataPath"))
+        #expect(try resolved.xcodebuild().arguments.contains("./DD"))
     }
 
     @Test("derivedDataPath variant overrides command")
@@ -514,8 +514,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("/tmp/ci-dd"))
-        #expect(!resolved.invocation.contains("./DD"))
+        #expect(try resolved.xcodebuild().arguments.contains("/tmp/ci-dd"))
+        #expect(try !resolved.xcodebuild().arguments.contains("./DD"))
     }
 
     // MARK: - Destination Resolution
@@ -581,9 +581,9 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        let destFlags = resolved.invocation.enumerated().filter {
+        let destFlags = try resolved.xcodebuild().arguments.enumerated().filter {
             $0.element == "-destination"
-        }.map { resolved.invocation[$0.offset + 1] }
+        }.map { try resolved.xcodebuild().arguments[$0.offset + 1] }
 
         #expect(destFlags == [
             "platform:iOS Simulator,name:iPhone 16",
@@ -601,7 +601,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("platform:macOS"))
+        #expect(try resolved.xcodebuild().arguments.contains("platform:macOS"))
     }
 
     // MARK: - Extra Args
@@ -616,7 +616,7 @@ struct CommandResolverTests {
             extraArgs: ["-enableAddressSanitizer", "YES"]
         )
 
-        let last2 = Array(resolved.invocation.suffix(2))
+        let last2 = try Array(resolved.xcodebuild().arguments.suffix(2))
         #expect(last2 == ["-enableAddressSanitizer", "YES"])
     }
 
@@ -630,7 +630,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("STAGING=1"))
+        #expect(try resolved.xcodebuild().arguments.contains("STAGING=1"))
         // Should NOT contain any other extra args from base (there are none in this case)
     }
 
@@ -740,9 +740,9 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("-workspace"))
-        #expect(resolved.invocation.contains("MyApp.xcworkspace"))
-        #expect(!resolved.invocation.contains("-project"))
+        #expect(try resolved.xcodebuild().arguments.contains("-workspace"))
+        #expect(try resolved.xcodebuild().arguments.contains("MyApp.xcworkspace"))
+        #expect(try !resolved.xcodebuild().arguments.contains("-project"))
     }
 
     @Test("SPM project has no project or workspace flags")
@@ -762,9 +762,9 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(!resolved.invocation.contains("-project"))
-        #expect(!resolved.invocation.contains("-workspace"))
-        #expect(resolved.invocation.contains("-scheme"))
+        #expect(try !resolved.xcodebuild().arguments.contains("-project"))
+        #expect(try !resolved.xcodebuild().arguments.contains("-workspace"))
+        #expect(try resolved.xcodebuild().arguments.contains("-scheme"))
     }
 
     // MARK: - Global Config Fallback
@@ -788,8 +788,8 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation.contains("GlobalScheme"))
-        #expect(resolved.invocation.contains("GlobalConfig"))
+        #expect(try resolved.xcodebuild().arguments.contains("GlobalScheme"))
+        #expect(try resolved.xcodebuild().arguments.contains("GlobalConfig"))
     }
 
     @Test("formatter resolved from global settings")
@@ -802,7 +802,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.formatter == "xcbeautify")
+        #expect(try resolved.xcodebuild().formatter == "xcbeautify")
     }
 
     @Test("project formatter overrides global formatter")
@@ -825,7 +825,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.formatter == "xcbeautify --disable-logging")
+        #expect(try resolved.xcodebuild().formatter == "xcbeautify --disable-logging")
     }
 
     @Test("project formatter used when no global config")
@@ -846,7 +846,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.formatter == "xcpretty")
+        #expect(try resolved.xcodebuild().formatter == "xcpretty")
     }
 
     // MARK: - Minimal Config
@@ -861,7 +861,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.invocation == [
+        #expect(try resolved.xcodebuild().arguments == [
             "xcodebuild", "build",
             "-scheme", "Minimal"
         ])
@@ -886,8 +886,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.script == "swiftlint lint --strict")
-        #expect(resolved.invocation.isEmpty)
+        #expect(resolved.action == .script("swiftlint lint --strict"))
     }
 
     @Test("script command with passthrough args")
@@ -907,7 +906,7 @@ struct CommandResolverTests {
             extraArgs: ["--fix"]
         )
 
-        #expect(resolved.script == "swiftlint lint --fix")
+        #expect(resolved.action == .script("swiftlint lint --fix"))
     }
 
     @Test("script passthrough args with shell metacharacters are quoted")
@@ -929,7 +928,7 @@ struct CommandResolverTests {
 
         // The metacharacter-laden arg must be single-quoted so `sh -c` treats it
         // as one literal token instead of parsing the "(".
-        #expect(resolved.script == "./codechat review reply --body 'Addressed - switched to makeThing().'")
+        #expect(resolved.action == .script("./codechat review reply --body 'Addressed - switched to makeThing().'"))
     }
 
     @Test("script passthrough neutralizes injection and expansion")
@@ -950,7 +949,7 @@ struct CommandResolverTests {
         )
 
         // No unquoted $, ;, backtick, or apostrophe escapes into the shell string.
-        #expect(resolved.script == "./tool '$HOME' 'a; touch b' 'it'\\''s' '`whoami`'")
+        #expect(resolved.action == .script("./tool '$HOME' 'a; touch b' 'it'\\''s' '`whoami`'"))
     }
 
     @Test("script command variant overrides run")
@@ -977,7 +976,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.script == "swiftlint lint --fix")
+        #expect(resolved.action == .script("swiftlint lint --fix"))
     }
 
     @Test("script command preserves hooks")
@@ -1002,7 +1001,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.script == "tuist generate")
+        #expect(resolved.action == .script("tuist generate"))
         #expect(resolved.hooks?.pre == "echo pre")
         #expect(resolved.hooks?.post == "echo post")
     }
@@ -1029,7 +1028,7 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.script == "swiftlint lint --reporter json")
+        #expect(resolved.action == .script("swiftlint lint --reporter json"))
     }
 
     @Test("non-script command has nil script")
@@ -1042,7 +1041,16 @@ struct CommandResolverTests {
             extraArgs: []
         )
 
-        #expect(resolved.script == nil)
-        #expect(!resolved.invocation.isEmpty)
+        #expect(try !resolved.xcodebuild().arguments.isEmpty)
+    }
+}
+
+extension CommandResolver.ResolvedCommand {
+    struct NotXcodebuild: Error {}
+
+    /// The xcodebuild case's values; throws if this resolved to a script.
+    func xcodebuild() throws -> (arguments: [String], formatter: String?) {
+        guard case .xcodebuild(let arguments, let formatter) = action else { throw NotXcodebuild() }
+        return (arguments, formatter)
     }
 }
