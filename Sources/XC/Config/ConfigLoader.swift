@@ -52,10 +52,8 @@ enum ConfigLoader {
     }
 
     static func load(from directory: String? = nil) throws -> LoadedConfig {
-        let (projectConfig, projectRoot) = try loadProjectConfig(from: directory)
-        try validate(projectConfig)
-        let globalConfig = try loadGlobalConfig(environment: environment(root: projectRoot))
-        return LoadedConfig(project: projectConfig, global: globalConfig, projectRoot: projectRoot)
+        let (config, root) = try loadProjectConfig(from: directory)
+        return try finishLoading(config, root: root)
     }
 
     /// Load the config located exactly in `directory` (no walking up). Used for nested members,
@@ -63,20 +61,29 @@ enum ConfigLoader {
     /// to the parent config.
     static func loadExact(from directory: String) throws -> LoadedConfig {
         let directory = absolutePath(directory)
+        return try finishLoading(decodeProject(inDirectory: directory), root: directory)
+    }
+
+    /// Validate the project config and pair it with the global config.
+    private static func finishLoading(_ config: ProjectConfig, root: String) throws -> LoadedConfig {
+        try validate(config)
+        let globalConfig = try loadGlobalConfig(environment: environment(root: root))
+        return LoadedConfig(project: config, global: globalConfig, projectRoot: root)
+    }
+
+    /// Read and decode the config file in `directory`, expanding `${VAR}` with `XC_ROOT`
+    /// set to `directory`. Not validated.
+    static func decodeProject(inDirectory directory: String) throws -> ProjectConfig {
         guard let path = configFilePath(in: directory) else {
             throw XCError.configNotFound
         }
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let yaml = String(data: data, encoding: .utf8) ?? ""
-        let projectConfig: ProjectConfig
         do {
-            projectConfig = try decode(ProjectConfig.self, yaml: yaml, environment: environment(root: directory))
+            return try decode(ProjectConfig.self, yaml: yaml, environment: environment(root: directory))
         } catch {
-            throw XCError.invalidConfig(Self.describeYAMLError(error))
+            throw XCError.invalidConfig(describeYAMLError(error))
         }
-        try validate(projectConfig)
-        let globalConfig = try loadGlobalConfig(environment: environment(root: directory))
-        return LoadedConfig(project: projectConfig, global: globalConfig, projectRoot: directory)
     }
 
     /// Member names declared in a config, sorted.
@@ -104,21 +111,13 @@ enum ConfigLoader {
     }
 
     /// Load the project config, walking up from the given directory until found.
-    /// Returns the parsed config and the directory where the config was found.
-    static func loadProjectConfig(from directory: String? = nil) throws -> (ProjectConfig, String) {
+    /// Returns the parsed (not validated) config and the directory where it was found.
+    static func loadProjectConfig(from directory: String? = nil) throws -> (config: ProjectConfig, root: String) {
         let startDir = absolutePath(directory ?? FileManager.default.currentDirectoryPath)
-        guard let configDir = findConfigDirectory(from: startDir),
-              let path = configFilePath(in: configDir) else {
+        guard let root = findConfigDirectory(from: startDir) else {
             throw XCError.configNotFound
         }
-        let data = try Data(contentsOf: URL(fileURLWithPath: path))
-        let yaml = String(data: data, encoding: .utf8) ?? ""
-        do {
-            let config = try decode(ProjectConfig.self, yaml: yaml, environment: environment(root: configDir))
-            return (config, configDir)
-        } catch {
-            throw XCError.invalidConfig(Self.describeYAMLError(error))
-        }
+        return try (decodeProject(inDirectory: root), root)
     }
 
     /// Walk up from `directory` looking for a config file. Returns the directory containing it, or nil.
