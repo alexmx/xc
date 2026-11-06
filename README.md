@@ -27,7 +27,7 @@ xc does two jobs in one tool:
 
 **Tames xcodebuild.** Short `build:release` / `test:ci` variants instead of flag strings, `sim`/`mac` aliases instead of destination specs, and readable xcbeautify output by default.
 
-**Runs your project tasks.** Wrap `swiftlint`, `swiftformat`, `tuist generate`, or any shell command as a first-class task, with the same variants, hooks, and `--dry-run` as a build. `xc list` is a self-documenting menu of every command in the repo.
+**Runs your project tasks.** Wrap `swiftlint`, `swiftformat`, `tuist generate`, or any shell command as a first-class task, with the same variants, hooks, and `--dry-run` as a build. Chain tasks with [`steps:`](#steps) (say, a `gate` of lint, build and test) and get a per-step timing summary. `xc list` is a self-documenting menu of every command in the repo.
 
 One `xc.yaml`, shared by the whole team, portable across machines and CI with `${VAR}` interpolation.
 
@@ -129,7 +129,7 @@ xc [<member>/]<command>[:<variant>] [options] [-- extra-xcodebuild-args...]
 | `-C`, `--directory <dir>` | Run as if in `<dir>`, using its `xc.yaml` |
 | `--all` | Run the command in the root project and every member |
 | `--members <names>` | Run the command in the listed members (comma-separated) |
-| `--continue` | When fanning out, continue after a member fails |
+| `--continue` | Keep going after a failure: a failed member when fanning out, or a failed step in a `steps:` command |
 | `--version` | Show version |
 
 ```bash

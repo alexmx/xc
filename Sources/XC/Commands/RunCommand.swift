@@ -34,7 +34,7 @@ struct RunCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Comma-separated member names to run the command in")
     var members: String?
 
-    @Flag(name: .customLong("continue"), help: "When fanning out, continue after a member fails")
+    @Flag(name: .customLong("continue"), help: "Keep going after a failed member (fan-out) or a failed step")
     var continueOnFailure: Bool = false
 
     @Argument(parsing: .postTerminator)

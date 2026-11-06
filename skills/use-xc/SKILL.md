@@ -26,7 +26,7 @@ A project needs an `xc.yaml` (or `xc.yml`) at its root; on "no config" run `xc i
 xc [<member>/]<command>[:<variant>] [options] [-- extra-xcodebuild-args...]
 ```
 
-`<command>`/`<variant>` come from `xc list`. Args after `--` pass to `xcodebuild` verbatim.
+`<command>`/`<variant>` come from `xc list`. Args after `--` pass to `xcodebuild` verbatim (shell-quoted for `run:` scripts; rejected for `steps:` commands).
 
 ```bash
 xc test:ci                                     # command "test", variant "ci"
@@ -41,7 +41,8 @@ IOS_SIMULATOR="iPhone SE" xc test              # env feeds ${VAR} in the config
 - `-v`/`--verbose`: print the resolved `xcodebuild` invocation, then run. First step when a build misbehaves.
 - `--raw`: raw xcodebuild output, no xcbeautify.
 - `-C`/`--directory <dir>`: run as if `cd <dir>` first, using that dir's `xc.yaml`.
-- `--all` / `--members <names>` / `--continue`: fan-out across members (see below).
+- `--all` / `--members <names>`: fan-out across members (see below).
+- `--continue`: keep going after a failed member (fan-out) or a failed step (`steps:` command); failures are still reported.
 - `--version`.
 
 On failure, re-run with `--verbose` or `--raw` before changing anything.
