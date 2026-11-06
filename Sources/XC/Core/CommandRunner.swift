@@ -82,23 +82,18 @@ enum CommandRunner {
         return value
     }
 
-    /// Find an executable in PATH.
+    /// Find an executable in PATH, like `which`.
     static func findInPath(_ name: String) -> String? {
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = [name]
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-
-        try? process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else { return nil }
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        let path = String(data: data, encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return path.isEmpty ? nil : path
+        let fileManager = FileManager.default
+        let directories = (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":")
+        for directory in directories {
+            let candidate = "\(directory)/\(name)"
+            var isDirectory: ObjCBool = false
+            if fileManager.fileExists(atPath: candidate, isDirectory: &isDirectory), !isDirectory.boolValue,
+               fileManager.isExecutableFile(atPath: candidate) {
+                return candidate
+            }
+        }
+        return nil
     }
 }

@@ -1,13 +1,13 @@
 import ArgumentParser
 import Foundation
 
-struct DestinationsCommand: ParsableCommand {
+struct DestinationsCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "destinations",
         abstract: "List available destinations"
     )
 
-    func run() throws {
+    func run() async throws {
         // Show named destinations from xc.yaml if available
         let projectConfig = try? ConfigLoader.loadProjectConfig().0
         if let destinations = projectConfig?.destinations, !destinations.isEmpty {
@@ -21,7 +21,7 @@ struct DestinationsCommand: ParsableCommand {
         }
 
         // Query available simulators
-        let simulators = try querySimulators()
+        let simulators = await querySimulators()
         if !simulators.isEmpty {
             print("Available simulators:")
             for (runtime, devices) in simulators.sorted(by: { $0.key < $1.key }) {
@@ -55,38 +55,16 @@ struct DestinationsCommand: ParsableCommand {
         let destination: String
     }
 
-    func querySimulators() throws -> [String: [SimDevice]] {
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
-        process.arguments = ["simctl", "list", "devices", "available", "-j"]
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-
-        try process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else { return [:] }
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let devicesMap = json["devices"] as? [String: [[String: Any]]] else {
-            return [:]
-        }
-
+    func querySimulators() async -> [String: [SimDevice]] {
+        let devicesMap = await Simulators.available()
         var result: [String: [SimDevice]] = [:]
 
-        for (runtimeID, devices) in devicesMap {
+        for (runtimeID, names) in devicesMap {
             // Runtime IDs look like "com.apple.CoreSimulator.SimRuntime.iOS-18-5"
             let runtimeName = formatRuntime(runtimeID)
             var runtimeDevices: [SimDevice] = []
 
-            for device in devices {
-                guard let name = device["name"] as? String,
-                      let isAvailable = device["isAvailable"] as? Bool,
-                      isAvailable else { continue }
-
+            for name in names {
                 let platform = runtimeName.contains("iOS") ? "iOS Simulator"
                     : runtimeName.contains("tvOS") ? "tvOS Simulator"
                     : runtimeName.contains("watchOS") ? "watchOS Simulator"
@@ -99,9 +77,7 @@ struct DestinationsCommand: ParsableCommand {
                 ))
             }
 
-            if !runtimeDevices.isEmpty {
-                result[runtimeName] = runtimeDevices.sorted { $0.name < $1.name }
-            }
+            result[runtimeName] = runtimeDevices.sorted { $0.name < $1.name }
         }
 
         return result

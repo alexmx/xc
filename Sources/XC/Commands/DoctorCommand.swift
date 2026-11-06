@@ -1,13 +1,13 @@
 import ArgumentParser
 import Foundation
 
-struct DoctorCommand: ParsableCommand {
+struct DoctorCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "doctor",
         abstract: "Validate project setup and diagnose common issues"
     )
 
-    func run() throws {
+    func run() async throws {
         var hasErrors = false
 
         // 1. Check xc.yaml
@@ -54,7 +54,7 @@ struct DoctorCommand: ParsableCommand {
         }
 
         // 4. Check schemes exist
-        let availableSchemes = querySchemes(projectConfig: projectConfig, projectRoot: projectRoot)
+        let availableSchemes = await querySchemes(projectConfig: projectConfig, projectRoot: projectRoot)
         let referencedSchemes = collectSchemes(from: projectConfig)
 
         if let availableSchemes {
@@ -74,7 +74,7 @@ struct DoctorCommand: ParsableCommand {
 
         // 5. Check named destinations resolve to installed simulators
         if let destinations = projectConfig.destinations, !destinations.isEmpty {
-            let installedSimulators = queryInstalledSimulatorNames()
+            let installedSimulators = await queryInstalledSimulatorNames()
 
             for (name, value) in destinations.sorted(by: { $0.key < $1.key }) {
                 if value.contains("platform=macOS") {
@@ -171,68 +171,18 @@ struct DoctorCommand: ParsableCommand {
 
     // MARK: - Queries
 
-    func querySchemes(projectConfig: ProjectConfig, projectRoot: String) -> [String]? {
-        var args = ["xcodebuild", "-list", "-json"]
-
+    func querySchemes(projectConfig: ProjectConfig, projectRoot: String) async -> [String]? {
+        var containerArgs: [String] = []
         if let workspace = projectConfig.workspace {
-            args += ["-workspace", workspace]
+            containerArgs = ["-workspace", workspace]
         } else if let project = projectConfig.project {
-            args += ["-project", project]
+            containerArgs = ["-project", project]
         }
-
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
-        process.arguments = args
-        process.currentDirectoryURL = URL(fileURLWithPath: projectRoot)
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-
-        try? process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else { return nil }
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
-
-        let container = json["workspace"] as? [String: Any]
-            ?? json["project"] as? [String: Any]
-            ?? [:]
-
-        return container["schemes"] as? [String]
+        return await Schemes.list(containerArgs: containerArgs, in: projectRoot)
     }
 
-    func queryInstalledSimulatorNames() -> Set<String> {
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
-        process.arguments = ["simctl", "list", "devices", "available", "-j"]
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-
-        try? process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else { return [] }
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let devicesMap = json["devices"] as? [String: [[String: Any]]] else {
-            return []
-        }
-
-        var names = Set<String>()
-        for (_, devices) in devicesMap {
-            for device in devices {
-                if let name = device["name"] as? String,
-                   let available = device["isAvailable"] as? Bool,
-                   available {
-                    names.insert(name)
-                }
-            }
-        }
-        return names
+    func queryInstalledSimulatorNames() async -> Set<String> {
+        await Set(Simulators.available().values.joined())
     }
 
     // MARK: - Helpers
