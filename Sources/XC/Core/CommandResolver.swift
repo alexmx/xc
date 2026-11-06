@@ -23,19 +23,24 @@ enum CommandResolver {
         }
         let variantConfig = variant.flatMap { commandConfig.variants?[$0] }
 
-        let hooks = variantConfig?.hooks ?? commandConfig.hooks
+        // Most specific first. Some settings belong to the command alone; the rest fall
+        // back to the project's and then the global config's defaults.
+        let commandLayers = [variantConfig, commandConfig].compactMap(\.self)
+        let allLayers = commandLayers + [config.project.defaults, config.global?.defaults].compactMap(\.self)
+
+        let hooks = first(\.hooks, in: commandLayers)
         let formatter = config.project.settings?.formatter
             ?? config.global?.settings?.formatter
 
-        // Check if this is a script command
-        let script = variantConfig?.run ?? commandConfig.run
-        if let script {
+        let configExtraArgs = first(\.extraArgs, in: commandLayers) ?? []
+
+        // A `run:` makes this a script command.
+        if let script = first(\.run, in: commandLayers) {
             var fullScript = script
             // Config-authored extraArgs are trusted (same authorship as the run string)
             // and may intentionally use shell syntax, so they are appended verbatim.
-            let scriptExtraArgs = variantConfig?.extraArgs ?? commandConfig.extraArgs ?? []
-            if !scriptExtraArgs.isEmpty {
-                fullScript += " " + scriptExtraArgs.joined(separator: " ")
+            if !configExtraArgs.isEmpty {
+                fullScript += " " + configExtraArgs.joined(separator: " ")
             }
             // CLI passthrough args (after `--`) are untrusted: the script runs via
             // `/bin/sh -c`, so each arg must be shell-quoted or it gets re-parsed by
@@ -46,53 +51,18 @@ enum CommandResolver {
             return ResolvedCommand(invocation: [], script: fullScript, hooks: hooks, formatter: formatter)
         }
 
-        // xcodebuild command — layer: variant > command > project defaults > global defaults
-        let scheme = variantConfig?.scheme
-            ?? commandConfig.scheme
-            ?? config.project.defaults?.scheme
-            ?? config.global?.defaults?.scheme
-
-        let configuration = variantConfig?.configuration
-            ?? commandConfig.configuration
-            ?? config.project.defaults?.configuration
-            ?? config.global?.defaults?.configuration
-
-        let rawDest: OneOrMany? = destOverride.map { OneOrMany($0) }
-            ?? variantConfig?.destination
-            ?? commandConfig.destination
-            ?? config.project.defaults?.destination
-            ?? config.global?.defaults?.destination
-
-        let testPlan = variantConfig?.testPlan
-            ?? commandConfig.testPlan
-            ?? config.project.defaults?.testPlan
-            ?? config.global?.defaults?.testPlan
-
-        let resultBundlePath = variantConfig?.resultBundlePath
-            ?? commandConfig.resultBundlePath
-            ?? config.project.defaults?.resultBundlePath
-            ?? config.global?.defaults?.resultBundlePath
-
-        let xcconfig = variantConfig?.xcconfig
-            ?? commandConfig.xcconfig
-            ?? config.project.defaults?.xcconfig
-            ?? config.global?.defaults?.xcconfig
-
-        let derivedDataPath = variantConfig?.derivedDataPath
-            ?? commandConfig.derivedDataPath
-            ?? config.project.defaults?.derivedDataPath
-            ?? config.global?.defaults?.derivedDataPath
-
-        let archivePath = variantConfig?.archivePath
-            ?? commandConfig.archivePath
-
-        let configExtraArgs = variantConfig?.extraArgs
-            ?? commandConfig.extraArgs
-            ?? []
+        let scheme = first(\.scheme, in: allLayers)
+        let configuration = first(\.configuration, in: allLayers)
+        let rawDest = destOverride.map { OneOrMany($0) } ?? first(\.destination, in: allLayers)
+        let testPlan = first(\.testPlan, in: allLayers)
+        let resultBundlePath = first(\.resultBundlePath, in: allLayers)
+        let xcconfig = first(\.xcconfig, in: allLayers)
+        let derivedDataPath = first(\.derivedDataPath, in: allLayers)
+        let archivePath = first(\.archivePath, in: commandLayers)
 
         let resolvedDests = resolveDestinations(rawDest, destinations: config.project.destinations)
 
-        let action = xcodebuildAction(for: commandName)
+        let action = commandName
 
         var args = ["xcodebuild", action]
 
@@ -138,8 +108,9 @@ enum CommandResolver {
         return ResolvedCommand(invocation: args, script: nil, hooks: hooks, formatter: formatter)
     }
 
-    static func xcodebuildAction(for command: String) -> String {
-        command
+    /// The setting from the first layer that sets it.
+    static func first<Value>(_ setting: KeyPath<CommandConfig, Value?>, in layers: [CommandConfig]) -> Value? {
+        layers.lazy.compactMap { $0[keyPath: setting] }.first
     }
 
     /// POSIX-quote an argument so it survives re-parsing by `/bin/sh -c`.
