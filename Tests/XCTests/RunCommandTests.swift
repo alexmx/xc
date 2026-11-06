@@ -3,6 +3,24 @@ import Testing
 
 @Suite("RunCommand Tests")
 struct RunCommandTests {
+    @Test("--raw disables formatting even when none is configured")
+    func rawDisablesDefaultFormatter() {
+        let formatter = RunCommand.formatter(raw: true, configured: nil)
+        #expect(formatter == "raw")
+        #expect(CommandRunner.resolveFormatter(formatter) == nil)
+    }
+
+    @Test("--raw overrides a configured formatter")
+    func rawOverridesConfiguredFormatter() {
+        #expect(RunCommand.formatter(raw: true, configured: "xcbeautify --quiet") == "raw")
+    }
+
+    @Test("without --raw the configured formatter is kept")
+    func configuredFormatterKept() {
+        #expect(RunCommand.formatter(raw: false, configured: "xcbeautify --quiet") == "xcbeautify --quiet")
+        #expect(RunCommand.formatter(raw: false, configured: nil) == nil)
+    }
+
     @Test("parseCommand with no variant")
     func parseCommandNoVariant() {
         let (command, variant) = RunCommand.parseCommand("build")

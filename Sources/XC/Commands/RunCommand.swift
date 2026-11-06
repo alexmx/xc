@@ -95,7 +95,7 @@ struct RunCommand: AsyncParsableCommand {
         if let script = resolved.script {
             try HookRunner.run(script, label: commandName, workingDirectory: projectRoot, quiet: true)
         } else {
-            let formatter = raw ? nil : resolved.formatter
+            let formatter = Self.formatter(raw: raw, configured: resolved.formatter)
             try CommandRunner.exec(args: resolved.invocation, formatter: formatter, workingDirectory: projectRoot)
         }
 
@@ -167,6 +167,12 @@ struct RunCommand: AsyncParsableCommand {
     }
 
     // MARK: - Parsing helpers
+
+    /// The formatter to hand to `CommandRunner`. `--raw` must be the explicit "raw"
+    /// value: nil means "use the default", which is xcbeautify.
+    static func formatter(raw: Bool, configured: String?) -> String? {
+        raw ? "raw" : configured
+    }
 
     static func shellEscape(_ args: [String]) -> String {
         args.map { $0.contains(" ") ? "\"\($0)\"" : $0 }.joined(separator: " ")
