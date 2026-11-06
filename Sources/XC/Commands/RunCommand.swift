@@ -75,9 +75,8 @@ struct RunCommand: AsyncParsableCommand {
         extraArgs: [String],
         asStep: Bool = false
     ) async throws {
-        let commandName = ref.name
         let resolved = try CommandResolver.resolve(
-            commandName: commandName,
+            commandName: ref.name,
             variant: ref.variant,
             config: config,
             destOverride: dest,
@@ -107,7 +106,7 @@ struct RunCommand: AsyncParsableCommand {
         }
 
         if let preHook = resolved.hooks?.pre {
-            try await runHook(preHook, label: "pre-\(commandName)", config: config)
+            try await runHook(preHook, label: "pre-\(ref.text)", config: config)
         }
 
         if Self.isVerbose(flag: verbose, config: config), !resolved.action.isSteps {
@@ -118,7 +117,7 @@ struct RunCommand: AsyncParsableCommand {
         switch resolved.action {
         case .script(let script):
             if let code = try await ShellRunner.run(script, in: projectRoot, environment: environment) {
-                throw XCError.scriptFailed(commandName, code)
+                throw XCError.scriptFailed(ref.text, code)
             }
         case .xcodebuild(let arguments, let configuredFormatter):
             try await CommandRunner.exec(
@@ -132,7 +131,7 @@ struct RunCommand: AsyncParsableCommand {
         }
 
         if let postHook = resolved.hooks?.post {
-            try await runHook(postHook, label: "post-\(commandName)", config: config)
+            try await runHook(postHook, label: "post-\(ref.text)", config: config)
         }
     }
 

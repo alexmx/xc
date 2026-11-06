@@ -226,4 +226,41 @@ struct RunCommandRunTests {
         #expect(log(dir) == "a\n")
         #expect(log(dir + "/core") == "core\n")
     }
+
+    // MARK: - Names in failures
+
+    @Test("a failing variant is named with its variant, in a step summary too")
+    func failingVariantNamed() async throws {
+        let yaml = """
+        commands:
+          test:
+            run: "true"
+            variants:
+              all:
+                run: "exit 1"
+                hooks:
+                  post: "true"
+          gate:
+            steps: [test:all]
+          hooked:
+            run: "true"
+            variants:
+              ci:
+                hooks:
+                  pre: "exit 2"
+        """
+        #expect(try await failure(["test:all"], yaml: yaml) == "Command 'test:all' exited with code 1.")
+        #expect(try await failure(["hooked:ci"], yaml: yaml) == "Hook 'pre-hooked:ci' failed with exit code 2.")
+        #expect(try await failure(["gate"], yaml: yaml) == "Step 'test:all' failed.")
+    }
+
+    @Test("a failing member command is named with its member")
+    func failingMemberNamed() async throws {
+        let dir = try makeProject([
+            "xc.yaml": "commands:\n  gate:\n    steps: [core/test:all]\nmembers:\n  core: core\n",
+            "core/xc.yaml": "commands:\n  test:\n    run: \"true\"\n    variants:\n      all:\n        run: \"exit 1\"\n"
+        ])
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        #expect(try await failure(["core/test:all"], in: dir) == "Command 'core/test:all' exited with code 1.")
+    }
 }
