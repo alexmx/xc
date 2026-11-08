@@ -14,6 +14,7 @@ struct InitTemplateGoldenTests {
         )
         #expect(yaml == """
         # xc configuration for App
+        # xc runs xcodebuild and project tasks from this file. See: https://github.com/alexmx/xc
         # Run 'xc destinations' to see all available destinations
         
         workspace: App.xcworkspace
@@ -53,6 +54,7 @@ struct InitTemplateGoldenTests {
         )
         #expect(yaml == """
         # xc configuration for Mac
+        # xc runs xcodebuild and project tasks from this file. See: https://github.com/alexmx/xc
         # Run 'xc destinations' to see all available destinations
         
         project: Mac.xcodeproj
@@ -91,6 +93,7 @@ struct InitTemplateGoldenTests {
         )
         #expect(yaml == """
         # xc configuration for Package
+        # xc runs xcodebuild and project tasks from this file. See: https://github.com/alexmx/xc
         # Run 'xc destinations' to see all available destinations
         
         
@@ -129,6 +132,7 @@ struct InitTemplateGoldenTests {
         )
         #expect(yaml == """
         # xc configuration for Project
+        # xc runs xcodebuild and project tasks from this file. See: https://github.com/alexmx/xc
         # Run 'xc destinations' to see all available destinations
         
         

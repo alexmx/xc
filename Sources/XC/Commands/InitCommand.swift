@@ -209,6 +209,7 @@ struct InitCommand: AsyncParsableCommand {
 
         return """
         # xc configuration for \(detection.name)
+        # xc runs xcodebuild and project tasks from this file. See: https://github.com/alexmx/xc
         # Run 'xc destinations' to see all available destinations
         
         \(containerLine)
